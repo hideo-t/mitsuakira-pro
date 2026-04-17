@@ -913,6 +913,155 @@
       display: none;
     }
   }
+
+  /* ---------- Print Button (floating) ---------- */
+  .print-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+    background: var(--color-hi);
+    color: var(--color-base);
+    border: none;
+    padding: 16px 24px;
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(139, 10, 26, 0.35);
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .print-btn:hover {
+    background: var(--color-hi-deep);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(139, 10, 26, 0.45);
+  }
+
+  .print-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  /* ---------- Print Styles ---------- */
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 15mm 12mm;
+    }
+
+    header, .print-btn, .scroll-indicator, .nav-toggle,
+    .hero-cta, .lang-switch, .footer-links {
+      display: none !important;
+    }
+
+    .reveal, .hero-eyebrow, .hero-catch, .hero-mark, .hero-name {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+      animation: none !important;
+    }
+
+    body {
+      background: white !important;
+      color: #1A2840 !important;
+      font-size: 11pt !important;
+      line-height: 1.6 !important;
+    }
+
+    .hero {
+      min-height: auto !important;
+      padding: 40px 0 30px !important;
+      page-break-after: always;
+    }
+
+    .hero-fan, .hero::before { display: none !important; }
+
+    .hero-catch {
+      font-size: 36pt !important;
+      color: #8B0A1A !important;
+    }
+
+    .hero-mark { font-size: 14pt !important; }
+    .hero-name { font-size: 18pt !important; }
+
+    section {
+      padding: 30px 0 !important;
+      page-break-inside: avoid;
+    }
+
+    .section-inner { max-width: 100% !important; }
+    .section-title { font-size: 20pt !important; margin-bottom: 20px !important; }
+
+    .vision {
+      background: #1A2840 !important;
+      color: #F5F0E8 !important;
+      padding: 30px 20px !important;
+      page-break-after: always;
+    }
+
+    .vision-catch { font-size: 22pt !important; color: #ff6b7a !important; }
+    .vision-text { font-size: 11pt !important; color: #F5F0E8 !important; }
+    .vision .section-title { color: #F5F0E8 !important; }
+
+    .profile { page-break-after: always; }
+    .profile-grid { grid-template-columns: 1fr 2fr !important; gap: 30px !important; }
+    .profile-bio { font-size: 10pt !important; }
+    .profile-data { font-size: 10pt !important; }
+
+    .contest { page-break-after: always; }
+    .contest::before, .contest::after { height: 6px !important; }
+    .contest-title { font-size: 22pt !important; }
+    .contest-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 12px !important; }
+    .contest-card { padding: 16px 12px !important; font-size: 9pt !important; }
+    .contest-prize {
+      background: #1A2840 !important;
+      color: #F5F0E8 !important;
+      padding: 20px !important;
+    }
+    .prize-amount { font-size: 28pt !important; color: #B8860B !important; }
+
+    .dojo-grid { grid-template-columns: 1fr 1fr !important; gap: 30px !important; }
+    .dojo-info {
+      background: #1A2840 !important;
+      color: #F5F0E8 !important;
+      padding: 20px !important;
+      font-size: 10pt !important;
+    }
+    .dojo-info h4 { color: #B8860B !important; }
+    .dojo-info dt { color: #A789B8 !important; }
+
+    .contact {
+      background: #1A2840 !important;
+      color: #F5F0E8 !important;
+      padding: 30px 20px !important;
+    }
+    .contact .section-title { color: #F5F0E8 !important; }
+    .contact-text { color: #F5F0E8 !important; }
+    .contact-info .contact-org { color: #B8860B !important; }
+
+    footer {
+      background: #1A1A1A !important;
+      color: #F5F0E8 !important;
+      padding: 20px !important;
+    }
+
+    a[href]::after { content: none !important; }
+
+    body.lang-ja .en-only { display: none !important; }
+    body.lang-en .ja-only { display: none !important; }
+  }
 </style>
 </head>
 <body class="lang-ja">
@@ -1227,6 +1376,15 @@
   </div>
 </section>
 
+<!-- ============ Print Button ============ -->
+<button class="print-btn" onclick="window.print()" title="このページを印刷">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/>
+  </svg>
+  <span class="ja-only">印刷する</span>
+  <span class="en-only">Print</span>
+</button>
+
 <!-- ============ Footer ============ -->
 <footer>
   <p class="footer-mark ja-only">一富士　二鷹　三遊亭円左衛門</p>
@@ -1275,6 +1433,13 @@
   }, { threshold: 0.15 });
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Print preparation: show all hidden elements before printing
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('.reveal').forEach(el => {
+      el.classList.add('visible');
+    });
+  });
 </script>
 
 </body>
