@@ -110,10 +110,23 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     let result;
 
+    // アクションをログに記録
+    if (debugSheet) {
+      try {
+        debugSheet.appendRow([new Date(), 'action', data.action]);
+      } catch (logErr) {}
+    }
+
     switch (data.action) {
       // イベント申し込み
       case 'submitReservation':
+        if (debugSheet) {
+          try { debugSheet.appendRow([new Date(), 'submitReservation', JSON.stringify(data).substring(0, 500)]); } catch (e) {}
+        }
         result = submitReservation(data);
+        if (debugSheet) {
+          try { debugSheet.appendRow([new Date(), 'submitReservation_result', JSON.stringify(result).substring(0, 500)]); } catch (e) {}
+        }
         break;
 
       // サポーター登録（新規）
@@ -150,11 +163,21 @@ function doPost(e) {
         throw new Error('Invalid action: ' + data.action);
     }
 
+    // 成功結果をログに記録
+    if (debugSheet) {
+      try { debugSheet.appendRow([new Date(), 'result_success', JSON.stringify(result).substring(0, 300)]); } catch (e) {}
+    }
+
     return ContentService
       .createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
+    // エラーをdebug_logに記録
+    if (debugSheet) {
+      try { debugSheet.appendRow([new Date(), 'ERROR', error.toString() + ' | Stack: ' + (error.stack || 'no stack')]); } catch (e) {}
+    }
+    Logger.log('doPost error: ' + error.toString());
     return ContentService
       .createTextOutput(JSON.stringify({ success: false, message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
