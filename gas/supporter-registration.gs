@@ -14,7 +14,7 @@
  */
 
 // ===== 設定 =====
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
+const SPREADSHEET_ID = '1g4YHWYDamiUDf1ko4vyQ_l2-VOWfGgj3Wm1COes52l4';
 const SITE_URL = 'https://hideo-t.github.io/mitsuakira-pro';
 const SHEET_NAME = 'サポーター登録';
 const NOTIFICATION_EMAIL = ''; // 管理者通知メール（任意）
@@ -267,6 +267,9 @@ function completeRegistration(data) {
       sheet.getRange(row, 11).setValue(data.message || '');
       sheet.getRange(row, 14).setValue(Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
 
+      // 登録完了メールを送信
+      sendCompletionEmail(data.email, data.name, sheetData[i][0], data.language || 'ja');
+
       // 管理者通知
       if (NOTIFICATION_EMAIL) {
         sendAdminNotification(data, sheetData[i][0]);
@@ -329,6 +332,90 @@ After verification, you will be directed to complete your registration.
 ─────────────────────────
 Mitsu Akira Production
 ${SITE_URL}
+─────────────────────────
+`;
+
+  GmailApp.sendEmail(email, subject, body);
+}
+
+/**
+ * 登録完了メールを送信
+ */
+function sendCompletionEmail(email, name, registrationId, language) {
+  const isJapanese = language === 'ja';
+
+  const subject = isJapanese
+    ? '【三晶プロダクション】サポーター登録完了のお知らせ'
+    : '【Mitsu Akira Production】Supporter Registration Confirmed';
+
+  const body = isJapanese
+    ? `
+${name} 様
+
+この度は三晶プロダクションのサポーターにご登録いただき、
+誠にありがとうございます。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 登録情報
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+登録ID: ${registrationId}
+メールアドレス: ${email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+今後、以下のような情報をお届けいたします：
+
+・落語コンテストの開催情報
+・落語道場の稽古・イベント情報
+・公演スケジュールのご案内
+・サポーター限定の特別企画
+
+白河から世界へ、落語の未来を共に創っていただけることを
+心より嬉しく思います。
+
+今後ともどうぞよろしくお願いいたします。
+
+─────────────────────────
+三晶プロダクション
+${SITE_URL}
+
+〒961-0905
+福島県白河市道場小路 31-14
+─────────────────────────
+`
+    : `
+Dear ${name},
+
+Thank you for registering as a supporter of Mitsu Akira Production.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ Registration Details
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Registration ID: ${registrationId}
+Email: ${email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+As a supporter, you will receive:
+
+・Rakugo Contest announcements
+・Dojo practice and event information
+・Performance schedules
+・Exclusive supporter benefits
+
+We are delighted to have you join us in creating
+the future of Rakugo, from Shirakawa to the world.
+
+Thank you for your support.
+
+─────────────────────────
+Mitsu Akira Production
+${SITE_URL}
+
+31-14 Dojo-koji, Shirakawa,
+Fukushima 961-0905, Japan
 ─────────────────────────
 `;
 
