@@ -1027,6 +1027,86 @@
     text-align: center;
   }
 
+  /* LINE友達登録 */
+  .line-friend-section {
+    margin: 32px 0;
+  }
+
+  .line-friend-box {
+    background: linear-gradient(135deg, #06C755 0%, #05a648 100%);
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .line-icon {
+    background: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .line-friend-content {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .line-friend-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+    margin-bottom: 6px;
+  }
+
+  .line-friend-desc {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+  }
+
+  .btn-line {
+    background: white;
+    color: #06C755;
+    border: none;
+    padding: 12px 28px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-line:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .line-cta {
+    margin-top: 48px;
+  }
+
+  @media (max-width: 500px) {
+    .line-friend-box {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .btn-line {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
   /* Form messages */
   .form-message {
     padding: 16px 20px;
@@ -1986,7 +2066,33 @@
         We will keep you updated on our activities.
       </p>
 
-      <div class="form-actions">
+      <!-- LINE友達登録 -->
+      <div class="line-friend-section">
+        <div class="line-friend-box">
+          <img src="https://scdn.line-apps.com/n/line_add_friends/btn/ja.png" alt="友だち追加" class="line-btn-img" style="display:none;">
+          <div class="line-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="#06C755">
+              <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+            </svg>
+          </div>
+          <div class="line-friend-content">
+            <p class="line-friend-title ja-only">公式LINEで最新情報をお届け</p>
+            <p class="line-friend-title en-only">Get Updates via Official LINE</p>
+            <p class="line-friend-desc ja-only">
+              イベント情報やお得な特典を<br>いち早くお届けします
+            </p>
+            <p class="line-friend-desc en-only">
+              Receive event info and<br>exclusive offers first
+            </p>
+          </div>
+          <a href="https://lin.ee/XXXXXXXXX" target="_blank" rel="noopener" class="btn btn-line" id="lineFriendBtn">
+            <span class="ja-only">友だち追加</span>
+            <span class="en-only">Add Friend</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top: 24px;">
         <a href="#top" class="btn btn-primary">
           <span class="ja-only">トップに戻る</span>
           <span class="en-only">Back to Top</span>
@@ -2010,12 +2116,12 @@
         <p class="benefit-desc ja-only">公演やイベントの優先予約・割引</p>
         <p class="benefit-desc en-only">Priority booking and discounts for events</p>
       </div>
-      <div class="benefit-card">
-        <div class="benefit-icon">🏷️</div>
-        <h4 class="benefit-title ja-only">お名前掲載</h4>
-        <h4 class="benefit-title en-only">Name Recognition</h4>
-        <p class="benefit-desc ja-only">公式サイトにサポーターとしてお名前を掲載</p>
-        <p class="benefit-desc en-only">Your name listed on our official website</p>
+      <div class="benefit-card benefit-card-line">
+        <div class="benefit-icon" style="color: #06C755;">💬</div>
+        <h4 class="benefit-title ja-only">LINE限定情報</h4>
+        <h4 class="benefit-title en-only">LINE Exclusive</h4>
+        <p class="benefit-desc ja-only">公式LINEで最新情報をいち早くお届け</p>
+        <p class="benefit-desc en-only">Get the latest updates first via LINE</p>
       </div>
       <div class="benefit-card">
         <div class="benefit-icon">🎭</div>
@@ -2023,6 +2129,31 @@
         <h4 class="benefit-title en-only">Exclusive Experience</h4>
         <p class="benefit-desc ja-only">稽古見学や円左衛門との交流会</p>
         <p class="benefit-desc en-only">Practice observation and meet the master</p>
+      </div>
+    </div>
+
+    <!-- LINE友達登録CTA -->
+    <div class="line-cta reveal">
+      <div class="line-friend-box">
+        <div class="line-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="#06C755">
+            <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+          </svg>
+        </div>
+        <div class="line-friend-content">
+          <p class="line-friend-title ja-only">公式LINE 友だち追加</p>
+          <p class="line-friend-title en-only">Add Official LINE</p>
+          <p class="line-friend-desc ja-only">
+            サポーター登録前でもOK！イベント情報やお得な特典をお届けします
+          </p>
+          <p class="line-friend-desc en-only">
+            No registration needed! Get event info and exclusive offers
+          </p>
+        </div>
+        <a href="https://lin.ee/XXXXXXXXX" target="_blank" rel="noopener" class="btn btn-line">
+          <span class="ja-only">友だち追加</span>
+          <span class="en-only">Add Friend</span>
+        </a>
       </div>
     </div>
   </div>
