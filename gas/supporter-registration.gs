@@ -74,17 +74,17 @@ function setupTestData() {
   console.log('テストデータセットアップ開始...');
 
   // ===== 1. eventsシートのセットアップ =====
+  // 注意: カラム順序はsaveEvent/getPublicEventsと一致させる必要がある
   let eventsSheet = ss.getSheetByName(SHEET_EVENTS);
   if (!eventsSheet) {
     eventsSheet = ss.insertSheet(SHEET_EVENTS);
     eventsSheet.appendRow([
-      'event_id', 'title', 'date', 'time_open', 'time_start', 'time_end',
-      'venue_name', 'venue_address', 'venue_url', 'map_url',
-      'capacity', 'reserved_count', 'price_general', 'price_member',
-      'performer', 'program', 'description', 'image_url', 'status',
-      'created_at', 'updated_at'
+      'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
+      'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
+      'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
+      'status', 'image_url', 'created_at', 'updated_at'
     ]);
-    eventsSheet.getRange(1, 1, 1, 21).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventsSheet.getRange(1, 1, 1, 22).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     eventsSheet.setFrozenRows(1);
     console.log('eventsシートを作成しました');
   }
@@ -101,28 +101,30 @@ function setupTestData() {
     }
   }
 
+  // カラム順序: saveEventと同じ（22列）
   const testEventData = [
-    testEventId,                              // event_id
-    '第1回落語【風と曼荼羅】',                    // title
-    '2026-06-10',                             // date
-    '13:30',                                  // time_open
-    '14:00',                                  // time_start
-    '16:00',                                  // time_end
-    '白河市民会館 小ホール',                     // venue_name
-    '福島県白河市中田7-1',                      // venue_address
-    'https://www.city.shirakawa.fukushima.jp/', // venue_url
-    'https://maps.google.com/?q=白河市民会館',   // map_url
-    50,                                       // capacity（定員50名）
-    0,                                        // reserved_count（予約数リセット）
-    3000,                                     // price_general（一般3000円）
-    2500,                                     // price_member（会員2500円）
-    '三遊亭円左衛門',                           // performer
-    '時そば / 初天神',                         // program
-    '三晶プロダクション設立記念の第1回落語会です。', // description
-    '',                                       // image_url
-    'published',                              // status
-    new Date(),                               // created_at
-    new Date()                                // updated_at
+    testEventId,                                // 0: event_id
+    '第1回落語【風と曼荼羅】',                      // 1: title
+    '三晶プロダクション設立記念の第1回落語会です。',   // 2: description
+    '2026-06-10',                               // 3: date
+    '13:30',                                    // 4: time_open
+    '14:00',                                    // 5: time_start
+    '16:00',                                    // 6: time_end
+    '白河市民会館 小ホール',                       // 7: venue_name
+    '福島県白河市中田7-1',                        // 8: venue_address
+    '白河駅から徒歩10分',                         // 9: venue_access
+    50,                                         // 10: capacity
+    0,                                          // 11: reserved_count
+    0,                                          // 12: waitlist_count
+    3000,                                       // 13: price_general
+    2500,                                       // 14: price_member
+    'ドリンク付き',                               // 15: price_includes
+    '',                                         // 16: accept_start
+    '',                                         // 17: accept_end
+    'published',                                // 18: status
+    '',                                         // 19: image_url
+    new Date(),                                 // 20: created_at
+    new Date()                                  // 21: updated_at
   ];
 
   if (eventRowIndex > 0) {
