@@ -1,71 +1,62 @@
 /**
- * 三晶プロダクション サポーター登録 - Google Apps Script
- * メール認証付き2段階登録
+ * 三晶プロダクション 会員・イベント管理システム
  *
- * 使い方:
- * 1. Google スプレッドシートを新規作成
- * 2. 拡張機能 > Apps Script を開く
- * 3. このコードを貼り付け
- * 4. SPREADSHEET_ID, SITE_URL を設定
- * 5. デプロイ > 新しいデプロイ > ウェブアプリ
- *    - 実行するユーザー: 自分
- *    - アクセスできるユーザー: 全員
- * 6. デプロイURLをHTMLのGAS_URLに設定
+ * テーブル構造:
+ * - members: サポーター会員マスタ
+ * - events: イベントマスタ
+ * - reservations: イベント申し込みDB
+ * - email_log: メール送信ログ
  */
 
 // ===== 設定 =====
 const SPREADSHEET_ID = '1g4YHWYDamiUDf1ko4vyQ_l2-VOWfGgj3Wm1COes52l4';
 const SITE_URL = 'https://hideo-t.github.io/mitsuakira-pro';
-const SHEET_NAME = 'サポーター登録';
-const ADMIN_SHEET_NAME = '管理者マスタ';
-const EVENT_SHEET_NAME = 'イベント';
-const APPLICATION_SHEET_NAME = 'イベント申込';
-const NOTIFICATION_EMAIL = ''; // 管理者通知メール（任意）
+const LINE_URL = 'https://lin.ee/zMR1NuAF';
 
-// トークンの有効期限（24時間）
+// シート名
+const SHEET_MEMBERS = 'members';
+const SHEET_EVENTS = 'events';
+const SHEET_RESERVATIONS = 'reservations';
+const SHEET_EMAIL_LOG = 'email_log';
+const SHEET_ADMIN = '管理者マスタ';
+
+// トークン有効期限（24時間）
 const TOKEN_EXPIRY_HOURS = 24;
 
-/**
- * POSTリクエストを処理
- */
+// ===== POSTリクエスト処理 =====
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     let result;
 
     switch (data.action) {
-      case 'sendVerification':
-        // Step 1: メール認証を送信
-        result = sendVerificationEmail(data.email, data.language);
+      // イベント申し込み
+      case 'submitReservation':
+        result = submitReservation(data);
         break;
 
-      case 'completeRegistration':
-        // Step 3: 詳細登録を完了
-        result = completeRegistration(data);
+      // サポーター登録
+      case 'submitMemberRegistration':
+        result = submitMemberRegistration(data);
         break;
 
+      // 管理者ログイン
       case 'adminLogin':
-        // 管理者ログイン
         result = adminLogin(data.email, data.password);
         break;
 
+      // イベント保存（管理者用）
       case 'saveEvent':
-        // イベント保存
         result = saveEvent(data);
         break;
 
-      case 'applyEvent':
-        // イベント申し込み
-        result = applyEvent(data);
-        break;
-
-      case 'registerAndApply':
-        // サポーター登録 + イベント申し込み同時処理
-        result = registerAndApplyEvent(data);
+      // イベント削除（管理者用）
+      case 'deleteEvent':
+        result = deleteEvent(data);
         break;
 
       default:
-        throw new Error('Invalid action');
+        throw new Error('Invalid action: ' + data.action);
     }
 
     return ContentService
@@ -79,42 +70,22 @@ function doPost(e) {
   }
 }
 
-/**
- * GETリクエストを処理（メール認証リンク、イベント取得など）
- */
+// ===== GETリクエスト処理 =====
 function doGet(e) {
-  const token = e.parameter.token;
   const action = e.parameter.action;
-  const email = e.parameter.email;
-  const password = e.parameter.password;
+  const token = e.parameter.token;
 
-  // イベント一覧取得
-  if (action === 'getEvents') {
-    if (!verifyAdmin(email, password)) {
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    const events = getEvents();
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: true, events: events }))
-      .setMimeType(ContentService.MimeType.JSON);
+  // メール確認（予約）
+  if (action === 'confirmReservation' && token) {
+    return confirmReservation(token);
   }
 
-  // サポーター一覧取得
-  if (action === 'getSupporters') {
-    if (!verifyAdmin(email, password)) {
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    const supporters = getSupporters();
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: true, supporters: supporters }))
-      .setMimeType(ContentService.MimeType.JSON);
+  // メール確認（会員登録）
+  if (action === 'confirmMember' && token) {
+    return confirmMember(token);
   }
 
-  // 公開イベント一覧取得（認証不要）
+  // 公開イベント一覧取得
   if (action === 'getPublicEvents') {
     const events = getPublicEvents();
     return ContentService
@@ -122,516 +93,777 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // イベント申込一覧取得（管理者用）
-  if (action === 'getApplications') {
+  // 管理者用：全イベント取得
+  if (action === 'getEvents') {
+    const email = e.parameter.email;
+    const password = e.parameter.password;
+    if (!verifyAdmin(email, password)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const events = getAllEvents();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, events: events }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 管理者用：予約一覧取得
+  if (action === 'getReservations') {
+    const email = e.parameter.email;
+    const password = e.parameter.password;
     if (!verifyAdmin(email, password)) {
       return ContentService
         .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     const eventId = e.parameter.eventId;
-    const applications = getApplications(eventId);
+    const reservations = getReservations(eventId);
     return ContentService
-      .createTextOutput(JSON.stringify({ success: true, applications: applications }))
+      .createTextOutput(JSON.stringify({ success: true, reservations: reservations }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // メール認証
-  if (action === 'verify' && token) {
-    // Step 2: メール認証を処理
-    const result = verifyEmail(token);
-
-    if (result.success) {
-      // 認証成功 → 詳細登録ページへリダイレクト
-      return HtmlService.createHtmlOutput(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta http-equiv="refresh" content="0;url=${SITE_URL}?verified=true&token=${token}&email=${encodeURIComponent(result.email)}">
-          <title>認証完了</title>
-        </head>
-        <body>
-          <p>認証が完了しました。リダイレクトしています...</p>
-          <p><a href="${SITE_URL}?verified=true&token=${token}&email=${encodeURIComponent(result.email)}">こちらをクリック</a></p>
-        </body>
-        </html>
-      `);
-    } else {
-      // 認証失敗
-      return HtmlService.createHtmlOutput(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>認証エラー</title>
-          <style>
-            body { font-family: sans-serif; text-align: center; padding: 50px; }
-            .error { color: #8B0A1A; }
-          </style>
-        </head>
-        <body>
-          <h1 class="error">認証エラー</h1>
-          <p>${result.message}</p>
-          <p><a href="${SITE_URL}#supporter">登録ページに戻る</a></p>
-        </body>
-        </html>
-      `);
+  // 管理者用：会員一覧取得
+  if (action === 'getMembers') {
+    const email = e.parameter.email;
+    const password = e.parameter.password;
+    if (!verifyAdmin(email, password)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
+    const members = getMembers();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, members: members }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 会員ID検証
+  if (action === 'verifyMemberId') {
+    const memberId = e.parameter.memberId;
+    const memberEmail = e.parameter.memberEmail;
+    const result = verifyMemberId(memberId, memberEmail);
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
   return ContentService
-    .createTextOutput(JSON.stringify({ status: 'ok', message: 'Mitsuakira Pro API' }))
+    .createTextOutput(JSON.stringify({ status: 'ok', message: 'Mitsuakira Pro API v2' }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Step 1: 認証メールを送信
- */
-function sendVerificationEmail(email, language) {
-  if (!email || !isValidEmail(email)) {
-    return { success: false, message: 'Invalid email address' };
-  }
-
+// ===== イベント申し込み処理 =====
+function submitReservation(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_NAME);
 
-  // シートが存在しない場合は作成
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow([
-      '登録ID', '会員番号', '登録日時', 'ステータス', 'メールアドレス', '認証トークン', 'トークン有効期限',
-      'サポート種別', '名前', '電話番号', '関心分野', 'メッセージ', '言語', '認証日時', '登録完了日時'
+  // 予約シートを取得または作成
+  let resSheet = ss.getSheetByName(SHEET_RESERVATIONS);
+  if (!resSheet) {
+    resSheet = ss.insertSheet(SHEET_RESERVATIONS);
+    resSheet.appendRow([
+      'reservation_id', 'event_id', 'member_id', 'name', 'name_kana', 'email',
+      'email_verified', 'phone', 'party_size', 'channel', 'status', 'is_member',
+      'price_applied', 'wants_to_register', 'verification_token', 'token_expires_at',
+      'reserved_at', 'confirmed_at', 'cancelled_at', 'cancel_reason', 'notes'
     ]);
-    sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
-    sheet.setFrozenRows(1);
+    resSheet.getRange(1, 1, 1, 21).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    resSheet.setFrozenRows(1);
   }
 
-  // 既存の未認証レコードをチェック
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][4] === email && data[i][3] === '未認証') {
-      // 既存の未認証レコードがある場合、トークンを再生成
-      const newToken = generateToken();
-      const newExpiry = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+  // イベント情報を取得
+  const eventInfo = getEventById(data.eventId);
+  if (!eventInfo) {
+    return { success: false, message: 'Event not found' };
+  }
 
-      sheet.getRange(i + 1, 6).setValue(newToken);
-      sheet.getRange(i + 1, 7).setValue(newExpiry);
+  // 残席チェック
+  const remainingSeats = eventInfo.capacity - eventInfo.reserved_count;
+  if (data.partySize > remainingSeats) {
+    return { success: false, message: 'Not enough seats available', remainingSeats: remainingSeats };
+  }
 
-      sendVerificationMail(email, newToken, language);
-      return { success: true, message: 'Verification email resent' };
-    }
-    if (data[i][4] === email && (data[i][3] === '認証済み' || data[i][3] === '登録完了')) {
-      return { success: false, message: 'Email already registered', code: 'ALREADY_REGISTERED' };
+  // 会員ID検証（入力された場合）
+  let isMember = false;
+  let memberId = null;
+  let priceApplied = eventInfo.price_general;
+
+  if (data.memberId && data.memberId.trim()) {
+    const memberCheck = verifyMemberId(data.memberId.trim(), data.email);
+    if (memberCheck.valid) {
+      isMember = true;
+      memberId = data.memberId.trim();
+      priceApplied = eventInfo.price_member || eventInfo.price_general;
     }
   }
 
-  // 新規レコードを作成
+  // 予約IDを生成
+  const now = new Date();
+  const dateStr = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyyMMdd');
+  const reservationId = generateReservationId(resSheet, dateStr);
+
+  // トークン生成
   const token = generateToken();
-  const expiry = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
-  const registrationId = 'SUP-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMddHHmmss');
-  const timestamp = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+  const tokenExpiry = new Date(now.getTime() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
-  sheet.appendRow([
-    registrationId,
-    '',  // 会員番号（登録完了時に発行）
-    timestamp,
-    '未認証',
-    email,
+  // 予約を仮登録
+  resSheet.appendRow([
+    reservationId,
+    data.eventId,
+    memberId,
+    data.name,
+    data.nameKana || '',
+    data.email,
+    false, // email_verified
+    data.phone,
+    data.partySize,
+    data.channel || 'web',
+    'pending', // status
+    isMember,
+    priceApplied,
+    data.wantsToRegister || false,
     token,
-    expiry,
-    '', '', '', '', '',
-    language || 'ja',
-    '',
-    ''
+    tokenExpiry,
+    now,
+    '', // confirmed_at
+    '', // cancelled_at
+    '', // cancel_reason
+    '' // notes
   ]);
 
-  // 認証メールを送信
-  sendVerificationMail(email, token, language);
-
-  return { success: true, message: 'Verification email sent', registrationId: registrationId };
-}
-
-/**
- * Step 2: メール認証を処理
- */
-function verifyEmail(token) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_NAME);
-
-  if (!sheet) {
-    return { success: false, message: 'Sheet not found' };
+  // 会員登録も希望する場合、membersにも仮登録
+  if (data.wantsToRegister && !isMember) {
+    registerPendingMember({
+      name: data.name,
+      nameKana: data.nameKana,
+      email: data.email,
+      phone: data.phone,
+      token: token,
+      tokenExpiry: tokenExpiry
+    });
   }
 
-  const data = sheet.getDataRange().getValues();
+  // 確認メールを送信
+  sendReservationConfirmationEmail({
+    reservationId: reservationId,
+    name: data.name,
+    email: data.email,
+    eventTitle: eventInfo.title,
+    eventDate: eventInfo.date,
+    eventTime: eventInfo.time_start,
+    venueName: eventInfo.venue_name,
+    partySize: data.partySize,
+    price: priceApplied * data.partySize,
+    isMember: isMember,
+    wantsToRegister: data.wantsToRegister,
+    token: token,
+    language: data.language || 'ja'
+  });
+
+  // メール送信ログ
+  logEmail(data.email, data.name, '【三晶プロダクション】お申し込み確認', 'reservation_confirm', reservationId, 'sent');
+
+  return {
+    success: true,
+    reservationId: reservationId,
+    message: 'Reservation submitted. Please check your email to confirm.',
+    isMember: isMember,
+    priceApplied: priceApplied
+  };
+}
+
+// ===== 予約確認（メールリンククリック） =====
+function confirmReservation(token) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const resSheet = ss.getSheetByName(SHEET_RESERVATIONS);
+
+  if (!resSheet) {
+    return createErrorPage('予約データが見つかりません。');
+  }
+
+  const data = resSheet.getDataRange().getValues();
   const now = new Date();
 
   for (let i = 1; i < data.length; i++) {
-    if (data[i][5] === token) {
-      const expiry = new Date(data[i][6]);
-      const status = data[i][3];
-      const email = data[i][4];
+    if (data[i][14] === token) { // verification_token
+      const tokenExpiry = new Date(data[i][15]);
+      const status = data[i][10];
+      const email = data[i][5];
+      const reservationId = data[i][0];
+      const eventId = data[i][1];
+      const partySize = data[i][8];
+      const wantsToRegister = data[i][13];
 
-      if (status === '登録完了') {
-        return { success: false, message: '既に登録が完了しています。' };
+      if (status === 'confirmed') {
+        return createSuccessPage('既に予約が確定しています。', reservationId);
       }
 
-      if (status === '認証済み') {
-        return { success: true, email: email, message: 'Already verified' };
+      if (now > tokenExpiry) {
+        return createErrorPage('確認リンクの有効期限が切れています。再度お申し込みください。');
       }
 
-      if (now > expiry) {
-        return { success: false, message: '認証リンクの有効期限が切れています。再度登録してください。' };
+      // 予約を確定
+      const row = i + 1;
+      resSheet.getRange(row, 7).setValue(true); // email_verified
+      resSheet.getRange(row, 11).setValue('confirmed'); // status
+      resSheet.getRange(row, 18).setValue(now); // confirmed_at
+
+      // イベントの予約数を更新
+      updateEventReservedCount(eventId, partySize);
+
+      // 会員登録も希望している場合、会員も確定
+      if (wantsToRegister) {
+        confirmMemberByEmail(email);
       }
 
-      // 認証成功 - ステータスを更新
-      sheet.getRange(i + 1, 4).setValue('認証済み');
-      sheet.getRange(i + 1, 14).setValue(Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
+      // 予約確定メールを送信
+      const eventInfo = getEventById(eventId);
+      sendReservationConfirmedEmail({
+        reservationId: reservationId,
+        name: data[i][3],
+        email: email,
+        eventTitle: eventInfo.title,
+        eventDate: eventInfo.date,
+        eventTime: eventInfo.time_start,
+        venueName: eventInfo.venue_name,
+        venueAddress: eventInfo.venue_address,
+        partySize: partySize,
+        price: data[i][12] * partySize
+      });
 
-      return { success: true, email: email, message: 'Email verified' };
+      return createSuccessPage('ご予約が確定しました！確認メールをお送りしました。', reservationId);
     }
   }
 
-  return { success: false, message: '無効な認証リンクです。' };
+  return createErrorPage('無効な確認リンクです。');
 }
 
-/**
- * Step 3: 詳細登録を完了
- */
-function completeRegistration(data) {
+// ===== サポーター登録処理 =====
+function submitMemberRegistration(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_NAME);
 
-  if (!sheet) {
-    return { success: false, message: 'Sheet not found' };
+  // 会員シートを取得または作成
+  let memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!memSheet) {
+    memSheet = ss.insertSheet(SHEET_MEMBERS);
+    memSheet.appendRow([
+      'member_id', 'name', 'name_kana', 'email', 'email_verified', 'phone',
+      'line_id', 'line_name', 'region', 'referral', 'plan', 'status',
+      'event_count', 'last_event_at', 'registered_at', 'verified_at',
+      'verification_token', 'token_expires_at', 'notes'
+    ]);
+    memSheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    memSheet.setFrozenRows(1);
   }
 
-  const sheetData = sheet.getDataRange().getValues();
+  // メールアドレスの重複チェック
+  const existingData = memSheet.getDataRange().getValues();
+  for (let i = 1; i < existingData.length; i++) {
+    if (existingData[i][3] === data.email) {
+      const status = existingData[i][11];
+      if (status === 'active') {
+        return { success: false, message: 'このメールアドレスは既に登録されています。' };
+      }
+      if (status === 'pending') {
+        // 仮登録中 - トークンを再生成して再送信
+        const token = generateToken();
+        const tokenExpiry = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+        const row = i + 1;
+        memSheet.getRange(row, 17).setValue(token);
+        memSheet.getRange(row, 18).setValue(tokenExpiry);
 
-  for (let i = 1; i < sheetData.length; i++) {
-    if (sheetData[i][5] === data.token && sheetData[i][4] === data.email) {
-      const status = sheetData[i][3];
+        sendMemberConfirmationEmail({
+          name: data.name,
+          email: data.email,
+          token: token,
+          language: data.language || 'ja'
+        });
 
-      if (status !== '認証済み') {
-        return { success: false, message: 'Email not verified or already completed' };
+        return { success: true, message: 'Confirmation email resent' };
+      }
+    }
+  }
+
+  // 会員IDを生成
+  const memberId = generateMemberId(memSheet);
+  const now = new Date();
+  const token = generateToken();
+  const tokenExpiry = new Date(now.getTime() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+
+  // 仮登録
+  memSheet.appendRow([
+    memberId,
+    data.name,
+    data.nameKana || '',
+    data.email,
+    false, // email_verified
+    data.phone || '',
+    '', // line_id
+    '', // line_name
+    data.region || '',
+    data.referral || '',
+    data.plan || 'free',
+    'pending', // status
+    0, // event_count
+    '', // last_event_at
+    now, // registered_at
+    '', // verified_at
+    token,
+    tokenExpiry,
+    '' // notes
+  ]);
+
+  // 確認メールを送信
+  sendMemberConfirmationEmail({
+    memberId: memberId,
+    name: data.name,
+    email: data.email,
+    token: token,
+    language: data.language || 'ja'
+  });
+
+  logEmail(data.email, data.name, '【三晶プロダクション】サポーター登録確認', 'member_confirm', memberId, 'sent');
+
+  return {
+    success: true,
+    memberId: memberId,
+    message: 'Registration submitted. Please check your email to confirm.'
+  };
+}
+
+// ===== 会員確認（メールリンククリック） =====
+function confirmMember(token) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const memSheet = ss.getSheetByName(SHEET_MEMBERS);
+
+  if (!memSheet) {
+    return createErrorPage('会員データが見つかりません。');
+  }
+
+  const data = memSheet.getDataRange().getValues();
+  const now = new Date();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][16] === token) { // verification_token
+      const tokenExpiry = new Date(data[i][17]);
+      const status = data[i][11];
+      const memberId = data[i][0];
+
+      if (status === 'active') {
+        return createSuccessPage('既にサポーター登録が完了しています。', memberId);
       }
 
-      // サポート種別を日本語に変換
-      const supportTypeMap = {
-        'personal': '個人サポーター',
-        'corporate': '法人・企業',
-        'volunteer': 'ボランティア'
-      };
+      if (now > tokenExpiry) {
+        return createErrorPage('確認リンクの有効期限が切れています。再度登録してください。');
+      }
 
-      // 関心分野を日本語に変換
-      const interestMap = {
-        'all': 'すべての活動',
-        'contest': '落語コンテスト',
-        'dojo': '落語道場',
-        'event': '公演・イベント',
-        'international': '海外展開'
-      };
-
-      // 会員番号を発行
-      const memberNumber = generateMemberNumber(sheet);
-
-      // 詳細情報を更新
+      // 会員を確定
       const row = i + 1;
-      sheet.getRange(row, 2).setValue(memberNumber);  // 会員番号
-      sheet.getRange(row, 4).setValue('登録完了');
-      sheet.getRange(row, 8).setValue(supportTypeMap[data.supportType] || data.supportType);
-      sheet.getRange(row, 9).setValue(data.name);
-      sheet.getRange(row, 10).setValue(data.phone || '');
-      sheet.getRange(row, 11).setValue(interestMap[data.interest] || data.interest || '');
-      sheet.getRange(row, 12).setValue(data.message || '');
-      sheet.getRange(row, 15).setValue(Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
+      memSheet.getRange(row, 5).setValue(true); // email_verified
+      memSheet.getRange(row, 12).setValue('active'); // status
+      memSheet.getRange(row, 16).setValue(now); // verified_at
 
       // 登録完了メールを送信
-      sendCompletionEmail(data.email, data.name, memberNumber, sheetData[i][0], data.language || 'ja');
+      sendMemberWelcomeEmail({
+        memberId: memberId,
+        name: data[i][1],
+        email: data[i][3]
+      });
 
-      // 管理者通知
-      if (NOTIFICATION_EMAIL) {
-        sendAdminNotification(data, sheetData[i][0], memberNumber);
-      }
-
-      return { success: true, message: 'Registration completed', registrationId: sheetData[i][0], memberNumber: memberNumber };
+      return createMemberSuccessPage(memberId, data[i][1]);
     }
   }
 
-  return { success: false, message: 'Registration not found' };
+  return createErrorPage('無効な確認リンクです。');
 }
 
-/**
- * 認証メールを送信
- */
-function sendVerificationMail(email, token, language) {
-  const gasUrl = ScriptApp.getService().getUrl();
-  const verifyUrl = `${gasUrl}?action=verify&token=${token}`;
+// ===== 仮会員登録（イベント申込時） =====
+function registerPendingMember(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let memSheet = ss.getSheetByName(SHEET_MEMBERS);
 
-  const isJapanese = language === 'ja';
+  if (!memSheet) {
+    memSheet = ss.insertSheet(SHEET_MEMBERS);
+    memSheet.appendRow([
+      'member_id', 'name', 'name_kana', 'email', 'email_verified', 'phone',
+      'line_id', 'line_name', 'region', 'referral', 'plan', 'status',
+      'event_count', 'last_event_at', 'registered_at', 'verified_at',
+      'verification_token', 'token_expires_at', 'notes'
+    ]);
+    memSheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    memSheet.setFrozenRows(1);
+  }
 
-  const subject = isJapanese
-    ? '【三晶プロダクション】サポーター登録のご確認'
-    : '【Mitsu Akira Production】Supporter Registration Verification';
+  // 既存チェック
+  const existingData = memSheet.getDataRange().getValues();
+  for (let i = 1; i < existingData.length; i++) {
+    if (existingData[i][3] === data.email) {
+      return; // 既に存在する場合はスキップ
+    }
+  }
 
-  const body = isJapanese
-    ? `
-三晶プロダクションにサポーター登録いただきありがとうございます。
+  const memberId = generateMemberId(memSheet);
+  const now = new Date();
 
-以下のリンクをクリックして、メールアドレスの認証を完了してください。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-▼ 認証リンク（24時間有効）
-${verifyUrl}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-認証後、詳細情報の登録ページが表示されます。
-
-※このメールに心当たりがない場合は、このメールを破棄してください。
-
-─────────────────────────
-三晶プロダクション
-${SITE_URL}
-─────────────────────────
-`
-    : `
-Thank you for registering as a supporter of Mitsu Akira Production.
-
-Please click the link below to verify your email address.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-▼ Verification Link (Valid for 24 hours)
-${verifyUrl}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-After verification, you will be directed to complete your registration.
-
-※If you did not request this, please ignore this email.
-
-─────────────────────────
-Mitsu Akira Production
-${SITE_URL}
-─────────────────────────
-`;
-
-  GmailApp.sendEmail(email, subject, body);
+  memSheet.appendRow([
+    memberId,
+    data.name,
+    data.nameKana || '',
+    data.email,
+    false, // email_verified
+    data.phone || '',
+    '', '', '', '',
+    'free',
+    'pending',
+    0, '',
+    now, '',
+    data.token,
+    data.tokenExpiry,
+    'イベント申込時に同時登録'
+  ]);
 }
 
-/**
- * 登録完了メールを送信
- */
-function sendCompletionEmail(email, name, memberNumber, registrationId, language) {
-  const isJapanese = language === 'ja';
+// ===== メールで会員を確定 =====
+function confirmMemberByEmail(email) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!memSheet) return;
 
-  const subject = isJapanese
-    ? `【三晶プロダクション】サポーター登録完了 - 会員番号: ${memberNumber}`
-    : `【Mitsu Akira Production】Registration Complete - Member No: ${memberNumber}`;
+  const data = memSheet.getDataRange().getValues();
+  const now = new Date();
 
-  const body = isJapanese
-    ? `
-${name} 様
-
-この度は三晶プロダクションのサポーターにご登録いただき、
-誠にありがとうございます。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 会員情報
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  会員番号: ${memberNumber}
-  登録ID: ${registrationId}
-  メールアドレス: ${email}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-上記の会員番号は、今後のお問い合わせやイベント参加時に
-ご利用いただく場合がございます。大切に保管してください。
-
-今後、以下のような情報をお届けいたします：
-
-・落語コンテストの開催情報
-・落語道場の稽古・イベント情報
-・公演スケジュールのご案内
-・サポーター限定の特別企画
-
-白河から世界へ、落語の未来を共に創っていただけることを
-心より嬉しく思います。
-
-今後ともどうぞよろしくお願いいたします。
-
-─────────────────────────
-三晶プロダクション
-${SITE_URL}
-
-〒961-0905
-福島県白河市道場小路 31-14
-─────────────────────────
-`
-    : `
-Dear ${name},
-
-Thank you for registering as a supporter of Mitsu Akira Production.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ Member Information
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Member Number: ${memberNumber}
-  Registration ID: ${registrationId}
-  Email: ${email}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Please keep your member number safe. You may need it
-for inquiries or event participation.
-
-As a supporter, you will receive:
-
-・Rakugo Contest announcements
-・Dojo practice and event information
-・Performance schedules
-・Exclusive supporter benefits
-
-We are delighted to have you join us in creating
-the future of Rakugo, from Shirakawa to the world.
-
-Thank you for your support.
-
-─────────────────────────
-Mitsu Akira Production
-${SITE_URL}
-
-31-14 Dojo-koji, Shirakawa,
-Fukushima 961-0905, Japan
-─────────────────────────
-`;
-
-  GmailApp.sendEmail(email, subject, body);
-}
-
-/**
- * 管理者通知メールを送信
- */
-function sendAdminNotification(data, registrationId, memberNumber) {
-  const supportTypeMap = {
-    'personal': '個人サポーター',
-    'corporate': '法人・企業',
-    'volunteer': 'ボランティア'
-  };
-
-  const subject = `【三晶プロダクション】新規サポーター登録: ${memberNumber} ${data.name}`;
-
-  const body = `
-新しいサポーター登録が完了しました。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 登録情報
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-会員番号: ${memberNumber}
-登録ID: ${registrationId}
-サポート種別: ${supportTypeMap[data.supportType] || data.supportType}
-お名前: ${data.name}
-メールアドレス: ${data.email}
-電話番号: ${data.phone || '(未入力)'}
-関心分野: ${data.interest || '(未選択)'}
-
-■ メッセージ
-${data.message || '(なし)'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-スプレッドシートで確認:
-https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}
-`;
-
-  GmailApp.sendEmail(NOTIFICATION_EMAIL, subject, body);
-}
-
-/**
- * 会員番号を生成
- */
-function generateMemberNumber(sheet) {
-  const data = sheet.getDataRange().getValues();
-  let maxNumber = 0;
-
-  // 既存の会員番号から最大値を取得
   for (let i = 1; i < data.length; i++) {
-    const memberNum = data[i][1];  // 会員番号列
-    if (memberNum && typeof memberNum === 'string' && memberNum.startsWith('M-')) {
-      const num = parseInt(memberNum.substring(2), 10);
-      if (!isNaN(num) && num > maxNumber) {
-        maxNumber = num;
+    if (data[i][3] === email && data[i][11] === 'pending') {
+      const row = i + 1;
+      memSheet.getRange(row, 5).setValue(true); // email_verified
+      memSheet.getRange(row, 12).setValue('active'); // status
+      memSheet.getRange(row, 16).setValue(now); // verified_at
+
+      // 会員登録完了メールを送信
+      sendMemberWelcomeEmail({
+        memberId: data[i][0],
+        name: data[i][1],
+        email: email
+      });
+      break;
+    }
+  }
+}
+
+// ===== イベント関連 =====
+function getEventById(eventId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) return null;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === eventId) {
+      return {
+        event_id: data[i][0],
+        title: data[i][1],
+        description: data[i][2],
+        date: formatDate(data[i][3]),
+        time_open: formatTime(data[i][4]),
+        time_start: formatTime(data[i][5]),
+        time_end: formatTime(data[i][6]),
+        venue_name: data[i][7],
+        venue_address: data[i][8],
+        venue_access: data[i][9],
+        capacity: data[i][10],
+        reserved_count: data[i][11] || 0,
+        waitlist_count: data[i][12] || 0,
+        price_general: data[i][13],
+        price_member: data[i][14],
+        price_includes: data[i][15],
+        accept_start: data[i][16],
+        accept_end: data[i][17],
+        status: data[i][18],
+        image_url: data[i][19],
+        created_at: data[i][20],
+        updated_at: data[i][21]
+      };
+    }
+  }
+  return null;
+}
+
+function getPublicEvents() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const events = [];
+  const now = new Date();
+
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][18];
+    if (status === 'open' || status === 'full') {
+      const eventDate = new Date(data[i][3]);
+      if (eventDate >= now) {
+        events.push({
+          event_id: data[i][0],
+          title: data[i][1],
+          description: data[i][2],
+          date: formatDate(data[i][3]),
+          time_open: formatTime(data[i][4]),
+          time_start: formatTime(data[i][5]),
+          venue_name: data[i][7],
+          venue_address: data[i][8],
+          capacity: data[i][10],
+          reserved_count: data[i][11] || 0,
+          price_general: data[i][13],
+          price_member: data[i][14],
+          price_includes: data[i][15],
+          status: status,
+          image_url: data[i][19]
+        });
       }
     }
   }
 
-  // 次の番号を生成（4桁ゼロ埋め）
-  const nextNumber = maxNumber + 1;
-  return 'M-' + String(nextNumber).padStart(4, '0');
+  events.sort((a, b) => new Date(a.date) - new Date(b.date));
+  return events;
 }
 
-/**
- * トークンを生成
- */
-function generateToken() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let token = '';
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
+function getAllEvents() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const events = [];
+
+  for (let i = 1; i < data.length; i++) {
+    events.push({
+      event_id: data[i][0],
+      title: data[i][1],
+      description: data[i][2],
+      date: formatDate(data[i][3]),
+      time_open: formatTime(data[i][4]),
+      time_start: formatTime(data[i][5]),
+      time_end: formatTime(data[i][6]),
+      venue_name: data[i][7],
+      venue_address: data[i][8],
+      venue_access: data[i][9],
+      capacity: data[i][10],
+      reserved_count: data[i][11] || 0,
+      waitlist_count: data[i][12] || 0,
+      price_general: data[i][13],
+      price_member: data[i][14],
+      price_includes: data[i][15],
+      accept_start: data[i][16],
+      accept_end: data[i][17],
+      status: data[i][18],
+      image_url: data[i][19],
+      created_at: data[i][20],
+      updated_at: data[i][21]
+    });
   }
-  return token;
+
+  events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return events;
 }
 
-/**
- * メールアドレスのバリデーション
- */
-function isValidEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+function updateEventReservedCount(eventId, addCount) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === eventId) {
+      const currentCount = data[i][11] || 0;
+      const newCount = currentCount + addCount;
+      const capacity = data[i][10];
+      const row = i + 1;
+
+      sheet.getRange(row, 12).setValue(newCount); // reserved_count
+
+      // 満席チェック
+      if (newCount >= capacity) {
+        sheet.getRange(row, 19).setValue('full'); // status
+      }
+      break;
+    }
+  }
 }
 
-/**
- * テスト用関数
- */
-function testSendVerification() {
-  const result = sendVerificationEmail('test@example.com', 'ja');
-  Logger.log(result);
+function saveEvent(data) {
+  if (!verifyAdmin(data.adminEmail, data.adminPassword)) {
+    return { success: false, message: 'Unauthorized' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_EVENTS);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_EVENTS);
+    sheet.appendRow([
+      'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
+      'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
+      'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
+      'status', 'image_url', 'created_at', 'updated_at'
+    ]);
+    sheet.getRange(1, 1, 1, 22).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+
+  const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
+
+  if (data.eventId) {
+    // 更新
+    const sheetData = sheet.getDataRange().getValues();
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0] === data.eventId) {
+        const row = i + 1;
+        sheet.getRange(row, 2).setValue(data.title);
+        sheet.getRange(row, 3).setValue(data.description || '');
+        sheet.getRange(row, 4).setValue(data.date);
+        sheet.getRange(row, 5).setValue(data.timeOpen || '');
+        sheet.getRange(row, 6).setValue(data.timeStart);
+        sheet.getRange(row, 7).setValue(data.timeEnd || '');
+        sheet.getRange(row, 8).setValue(data.venueName);
+        sheet.getRange(row, 9).setValue(data.venueAddress);
+        sheet.getRange(row, 10).setValue(data.venueAccess || '');
+        sheet.getRange(row, 11).setValue(data.capacity);
+        sheet.getRange(row, 14).setValue(data.priceGeneral);
+        sheet.getRange(row, 15).setValue(data.priceMember || '');
+        sheet.getRange(row, 16).setValue(data.priceIncludes || '');
+        sheet.getRange(row, 19).setValue(data.status);
+        sheet.getRange(row, 20).setValue(data.imageUrl || '');
+        sheet.getRange(row, 22).setValue(now);
+        return { success: true, eventId: data.eventId };
+      }
+    }
+    return { success: false, message: 'Event not found' };
+  } else {
+    // 新規作成
+    const eventId = generateEventId(data.date);
+    sheet.appendRow([
+      eventId,
+      data.title,
+      data.description || '',
+      data.date,
+      data.timeOpen || '',
+      data.timeStart,
+      data.timeEnd || '',
+      data.venueName,
+      data.venueAddress,
+      data.venueAccess || '',
+      data.capacity,
+      0, // reserved_count
+      0, // waitlist_count
+      data.priceGeneral,
+      data.priceMember || '',
+      data.priceIncludes || '',
+      '', // accept_start
+      '', // accept_end
+      data.status || 'draft',
+      data.imageUrl || '',
+      now,
+      now
+    ]);
+    return { success: true, eventId: eventId };
+  }
 }
 
-// ============================================
-// 管理者認証
-// ============================================
+// ===== 会員ID検証 =====
+function verifyMemberId(memberId, email) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!sheet) return { valid: false };
 
-/**
- * 管理者ログイン
- */
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === memberId && data[i][3] === email && data[i][11] === 'active') {
+      return { valid: true, name: data[i][1] };
+    }
+  }
+  return { valid: false };
+}
+
+// ===== 予約・会員一覧取得 =====
+function getReservations(eventId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_RESERVATIONS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const reservations = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (!eventId || data[i][1] === eventId) {
+      reservations.push({
+        reservation_id: data[i][0],
+        event_id: data[i][1],
+        member_id: data[i][2],
+        name: data[i][3],
+        email: data[i][5],
+        email_verified: data[i][6],
+        phone: data[i][7],
+        party_size: data[i][8],
+        channel: data[i][9],
+        status: data[i][10],
+        is_member: data[i][11],
+        price_applied: data[i][12],
+        reserved_at: data[i][16],
+        confirmed_at: data[i][17]
+      });
+    }
+  }
+
+  return reservations;
+}
+
+function getMembers() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const members = [];
+
+  for (let i = 1; i < data.length; i++) {
+    members.push({
+      member_id: data[i][0],
+      name: data[i][1],
+      email: data[i][3],
+      email_verified: data[i][4],
+      phone: data[i][5],
+      plan: data[i][10],
+      status: data[i][11],
+      event_count: data[i][12],
+      registered_at: data[i][14],
+      verified_at: data[i][15]
+    });
+  }
+
+  return members;
+}
+
+// ===== 管理者認証 =====
 function adminLogin(email, password) {
   if (!email || !password) {
     return { success: false, message: 'Email and password required' };
   }
-
   if (verifyAdmin(email, password)) {
-    return { success: true, message: 'Login successful' };
+    return { success: true };
   }
-
   return { success: false, message: 'Invalid credentials' };
 }
 
-/**
- * 管理者認証を確認
- */
 function verifyAdmin(email, password) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(ADMIN_SHEET_NAME);
+  let sheet = ss.getSheetByName(SHEET_ADMIN);
 
-  // 管理者シートがない場合は作成
   if (!sheet) {
-    sheet = ss.insertSheet(ADMIN_SHEET_NAME);
+    sheet = ss.insertSheet(SHEET_ADMIN);
     sheet.appendRow(['メールアドレス', 'パスワード', '名前', '権限', '作成日']);
     sheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
-    // デフォルト管理者を追加（初回のみ）
     sheet.appendRow(['admin@mitsuakira.com', 'admin123', '管理者', 'admin', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd')]);
     return false;
   }
@@ -642,631 +874,89 @@ function verifyAdmin(email, password) {
       return true;
     }
   }
-
   return false;
 }
 
-// ============================================
-// イベント管理
-// ============================================
+// ===== メール送信 =====
+function sendReservationConfirmationEmail(info) {
+  const gasUrl = ScriptApp.getService().getUrl();
+  const confirmUrl = `${gasUrl}?action=confirmReservation&token=${info.token}`;
 
-/**
- * イベントを保存
- */
-function saveEvent(data) {
-  // 管理者認証
-  if (!verifyAdmin(data.adminEmail, data.adminPassword)) {
-    return { success: false, message: 'Unauthorized' };
-  }
+  const subject = '【三晶プロダクション】お申し込み確認';
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(EVENT_SHEET_NAME);
+  const body = `
+${info.name} 様
 
-  // イベントシートがない場合は作成
-  if (!sheet) {
-    sheet = ss.insertSheet(EVENT_SHEET_NAME);
-    sheet.appendRow([
-      'イベントID', '作成日', 'ステータス', 'イベント名', '開催日', '開場', '開演',
-      '会場名', '住所', '会場URL', '地図URL', '料金', '定員',
-      '出演者', '演目', '連絡先', '特典・備考', '画像URL', '更新日'
-    ]);
-    sheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
-    sheet.setFrozenRows(1);
-  }
-
-  const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-
-  if (data.eventId) {
-    // 既存イベントを更新
-    const sheetData = sheet.getDataRange().getValues();
-    for (let i = 1; i < sheetData.length; i++) {
-      if (sheetData[i][0] === data.eventId) {
-        const row = i + 1;
-        sheet.getRange(row, 3).setValue(data.status || 'draft');
-        sheet.getRange(row, 4).setValue(data.title);
-        sheet.getRange(row, 5).setValue(data.date);
-        sheet.getRange(row, 6).setValue(data.openTime);
-        sheet.getRange(row, 7).setValue(data.startTime);
-        sheet.getRange(row, 8).setValue(data.venue);
-        sheet.getRange(row, 9).setValue(data.address);
-        sheet.getRange(row, 10).setValue(data.venueUrl);
-        sheet.getRange(row, 11).setValue(data.mapUrl);
-        sheet.getRange(row, 12).setValue(data.price);
-        sheet.getRange(row, 13).setValue(data.capacity);
-        sheet.getRange(row, 14).setValue(data.performer);
-        sheet.getRange(row, 15).setValue(data.program);
-        sheet.getRange(row, 16).setValue(data.contact);
-        sheet.getRange(row, 17).setValue(data.special);
-        sheet.getRange(row, 18).setValue(data.imageUrl || '');
-        sheet.getRange(row, 19).setValue(now);
-        return { success: true, message: 'Event updated', eventId: data.eventId };
-      }
-    }
-    return { success: false, message: 'Event not found' };
-  } else {
-    // 新規イベントを作成
-    const eventId = generateEventId(sheet);
-    sheet.appendRow([
-      eventId,
-      now,
-      data.status || 'draft',
-      data.title,
-      data.date,
-      data.openTime,
-      data.startTime,
-      data.venue,
-      data.address,
-      data.venueUrl,
-      data.mapUrl,
-      data.price,
-      data.capacity,
-      data.performer,
-      data.program,
-      data.contact,
-      data.special,
-      data.imageUrl || '',
-      now
-    ]);
-    return { success: true, message: 'Event created', eventId: eventId };
-  }
-}
-
-/**
- * イベントIDを生成
- */
-function generateEventId(sheet) {
-  const data = sheet.getDataRange().getValues();
-  let maxNumber = 0;
-
-  for (let i = 1; i < data.length; i++) {
-    const eventId = data[i][0];
-    if (eventId && typeof eventId === 'string' && eventId.startsWith('EV-')) {
-      const num = parseInt(eventId.substring(3), 10);
-      if (!isNaN(num) && num > maxNumber) {
-        maxNumber = num;
-      }
-    }
-  }
-
-  const nextNumber = maxNumber + 1;
-  return 'EV-' + String(nextNumber).padStart(4, '0');
-}
-
-/**
- * 全イベントを取得（管理者用）
- */
-function getEvents() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(EVENT_SHEET_NAME);
-
-  if (!sheet) {
-    return [];
-  }
-
-  const data = sheet.getDataRange().getValues();
-  const events = [];
-
-  for (let i = 1; i < data.length; i++) {
-    // 日付・時刻データを文字列に変換
-    const dateVal = data[i][4];
-    const dateStr = dateVal instanceof Date
-      ? Utilities.formatDate(dateVal, 'Asia/Tokyo', 'yyyy-MM-dd')
-      : String(dateVal || '');
-
-    const openTimeVal = data[i][5];
-    const openTimeStr = openTimeVal instanceof Date
-      ? Utilities.formatDate(openTimeVal, 'Asia/Tokyo', 'HH:mm')
-      : String(openTimeVal || '');
-
-    const startTimeVal = data[i][6];
-    const startTimeStr = startTimeVal instanceof Date
-      ? Utilities.formatDate(startTimeVal, 'Asia/Tokyo', 'HH:mm')
-      : String(startTimeVal || '');
-
-    events.push({
-      id: data[i][0],
-      createdAt: data[i][1],
-      status: data[i][2],
-      title: data[i][3],
-      date: dateStr,
-      openTime: openTimeStr,
-      startTime: startTimeStr,
-      venue: data[i][7],
-      address: data[i][8],
-      venueUrl: data[i][9],
-      mapUrl: data[i][10],
-      price: data[i][11],
-      capacity: data[i][12],
-      performer: data[i][13],
-      program: data[i][14],
-      contact: data[i][15],
-      special: data[i][16],
-      imageUrl: data[i][17] || '',
-      updatedAt: data[i][18]
-    });
-  }
-
-  // 開催日の降順でソート（日付を文字列に変換）
-  events.sort((a, b) => {
-    const dateA = a.date ? String(a.date) : '';
-    const dateB = b.date ? String(b.date) : '';
-    return dateB.localeCompare(dateA);
-  });
-
-  return events;
-}
-
-/**
- * 公開イベントを取得（一般用）
- */
-function getPublicEvents() {
-  const events = getEvents();
-  return events.filter(ev => ev.status === 'published');
-}
-
-/**
- * サポーター一覧を取得（管理者用）
- */
-function getSupporters() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_NAME);
-
-  if (!sheet) {
-    return [];
-  }
-
-  const data = sheet.getDataRange().getValues();
-  const supporters = [];
-
-  for (let i = 1; i < data.length; i++) {
-    supporters.push({
-      registrationId: data[i][0],
-      memberNumber: data[i][1],
-      registeredAt: data[i][2],
-      status: data[i][3],
-      email: data[i][4],
-      supportType: data[i][7],
-      name: data[i][8],
-      phone: data[i][9],
-      interest: data[i][10],
-      message: data[i][11]
-    });
-  }
-
-  return supporters;
-}
-
-// ============================================
-// イベント申し込み
-// ============================================
-
-/**
- * イベント申し込みを処理
- */
-function applyEvent(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(APPLICATION_SHEET_NAME);
-
-  // 申込シートがない場合は作成
-  if (!sheet) {
-    sheet = ss.insertSheet(APPLICATION_SHEET_NAME);
-    sheet.appendRow([
-      '申込ID', '申込日時', 'イベントID', 'イベント名', '開催日', '会場',
-      '申込方法', '会員番号', '名前', 'メールアドレス', '電話番号', '参加人数', '備考', 'ステータス'
-    ]);
-    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
-    sheet.setFrozenRows(1);
-  }
-
-  // 申込IDを生成
-  const applicationId = generateApplicationId(sheet);
-  const timestamp = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-
-  // 名前を取得（会員の場合はメールから検索）
-  let name = data.name || '';
-  if (data.applyMethod === 'member' && data.memberNumber) {
-    const memberInfo = getMemberByNumber(data.memberNumber, data.email);
-    if (memberInfo) {
-      name = memberInfo.name;
-    }
-  }
-
-  // データを保存
-  sheet.appendRow([
-    applicationId,
-    timestamp,
-    data.eventId,
-    data.eventTitle,
-    data.eventDate,
-    data.eventVenue,
-    data.applyMethod === 'member' ? 'サポーター会員' : '一般',
-    data.memberNumber || '',
-    name,
-    data.email,
-    data.phone || '',
-    data.attendees || '1',
-    data.notes || '',
-    '受付済'
-  ]);
-
-  // 確認メールを送信
-  sendApplicationConfirmation(data, applicationId);
-
-  // 管理者通知
-  if (NOTIFICATION_EMAIL) {
-    sendApplicationNotification(data, applicationId, name);
-  }
-
-  return { success: true, applicationId: applicationId };
-}
-
-/**
- * 申込IDを生成
- */
-function generateApplicationId(sheet) {
-  const data = sheet.getDataRange().getValues();
-  let maxNumber = 0;
-
-  for (let i = 1; i < data.length; i++) {
-    const appId = data[i][0];
-    if (appId && typeof appId === 'string' && appId.startsWith('AP-')) {
-      const num = parseInt(appId.substring(3), 10);
-      if (!isNaN(num) && num > maxNumber) {
-        maxNumber = num;
-      }
-    }
-  }
-
-  return 'AP-' + String(maxNumber + 1).padStart(5, '0');
-}
-
-/**
- * 会員番号から会員情報を取得
- */
-function getMemberByNumber(memberNumber, email) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_NAME);
-
-  if (!sheet) return null;
-
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === memberNumber && data[i][4] === email) {
-      return {
-        memberNumber: data[i][1],
-        name: data[i][8],
-        email: data[i][4]
-      };
-    }
-  }
-  return null;
-}
-
-/**
- * イベント申込確認メールを送信
- */
-function sendApplicationConfirmation(data, applicationId) {
-  const isJapanese = data.language === 'ja';
-  const name = data.name || data.memberNumber || 'お客様';
-
-  const subject = isJapanese
-    ? `【三晶プロダクション】イベント申込受付: ${data.eventTitle}`
-    : `【Mitsu Akira Production】Event Application Confirmed: ${data.eventTitle}`;
-
-  const body = isJapanese
-    ? `
-${name} 様
-
-イベントへのお申し込みを受け付けました。
+イベントへのお申し込みありがとうございます。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 申込内容
+■ ご予約内容（仮予約）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-申込番号: ${applicationId}
-イベント: ${data.eventTitle}
-開催日: ${data.eventDate}
-会場: ${data.eventVenue}
-参加人数: ${data.attendees || 1}名
+イベント: ${info.eventTitle}
+開催日: ${info.eventDate} ${info.eventTime}
+会場: ${info.venueName}
+参加人数: ${info.partySize}名
+料金: ${info.price.toLocaleString()}円
+
+申込番号: ${info.reservationId}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 予約を確定するには
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-当日は開場時間に合わせてお越しください。
-ご来場を心よりお待ちしております。
+以下のリンクをクリックして、予約を確定してください。
+（24時間以内にクリックしないと予約は無効になります）
 
-※ご不明点がございましたら、公式LINEまたは
-  メールにてお問い合わせください。
+▼ 予約を確定する
+${confirmUrl}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${info.wantsToRegister ? `
+■ サポーター登録について
+
+予約確定と同時にサポーター会員登録も完了します。
+次回公演の先行案内などをお届けいたします。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+` : ''}
+※このメールに心当たりがない場合は、このメールを破棄してください。
 
 ─────────────────────────
 三晶プロダクション
 ${SITE_URL}
 ─────────────────────────
-`
-    : `
-Dear ${name},
-
-Your event application has been received.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ Application Details
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Application No: ${applicationId}
-Event: ${data.eventTitle}
-Date: ${data.eventDate}
-Venue: ${data.eventVenue}
-Attendees: ${data.attendees || 1}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Please arrive at the venue by the opening time.
-We look forward to seeing you!
-
-─────────────────────────
-Mitsu Akira Production
-${SITE_URL}
-─────────────────────────
 `;
 
-  GmailApp.sendEmail(data.email, subject, body);
+  GmailApp.sendEmail(info.email, subject, body);
 }
 
-/**
- * イベント申込管理者通知を送信
- */
-function sendApplicationNotification(data, applicationId, name) {
-  const subject = `【三晶プロダクション】イベント申込: ${data.eventTitle}`;
+function sendReservationConfirmedEmail(info) {
+  const subject = '【三晶プロダクション】ご予約確定のお知らせ';
 
   const body = `
-新しいイベント申込がありました。
+${info.name} 様
+
+ご予約が確定しました。
+当日のご来場を心よりお待ちしております。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 申込情報
+■ ご予約内容
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-申込番号: ${applicationId}
-イベント: ${data.eventTitle}
-開催日: ${data.eventDate}
-
-申込方法: ${data.applyMethod === 'member' ? 'サポーター会員' : '一般'}
-${data.memberNumber ? `会員番号: ${data.memberNumber}` : ''}
-お名前: ${name || '(未登録)'}
-メール: ${data.email}
-${data.phone ? `電話: ${data.phone}` : ''}
-参加人数: ${data.attendees || 1}名
-
-${data.notes ? `■ 備考\n${data.notes}` : ''}
+申込番号: ${info.reservationId}
+イベント: ${info.eventTitle}
+開催日: ${info.eventDate} ${info.eventTime}
+会場: ${info.venueName}
+住所: ${info.venueAddress}
+参加人数: ${info.partySize}名
+料金: ${info.price.toLocaleString()}円
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-スプレッドシートで確認:
-https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}
-`;
-
-  GmailApp.sendEmail(NOTIFICATION_EMAIL, subject, body);
-}
-
-/**
- * イベント申込一覧を取得
- */
-function getApplications(eventId) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(APPLICATION_SHEET_NAME);
-
-  if (!sheet) return [];
-
-  const data = sheet.getDataRange().getValues();
-  const applications = [];
-
-  for (let i = 1; i < data.length; i++) {
-    // eventIdが指定されている場合はフィルタリング
-    if (eventId && data[i][2] !== eventId) continue;
-
-    applications.push({
-      applicationId: data[i][0],
-      appliedAt: data[i][1],
-      eventId: data[i][2],
-      eventTitle: data[i][3],
-      eventDate: data[i][4],
-      venue: data[i][5],
-      method: data[i][6],
-      memberNumber: data[i][7],
-      name: data[i][8],
-      email: data[i][9],
-      phone: data[i][10],
-      attendees: data[i][11],
-      notes: data[i][12],
-      status: data[i][13]
-    });
-  }
-
-  return applications;
-}
-
-/**
- * 管理者シートを初期化（テスト用）
- */
-function initAdminSheet() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(ADMIN_SHEET_NAME);
-
-  if (!sheet) {
-    sheet = ss.insertSheet(ADMIN_SHEET_NAME);
-  } else {
-    sheet.clear();
-  }
-
-  sheet.appendRow(['メールアドレス', 'パスワード', '名前', '権限', '作成日']);
-  sheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
-  sheet.setFrozenRows(1);
-
-  // デフォルト管理者
-  sheet.appendRow(['admin@mitsuakira.com', 'admin123', '管理者', 'admin', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd')]);
-
-  Logger.log('Admin sheet initialized');
-}
-
-/**
- * サポーター登録 + イベント申し込み同時処理
- */
-function registerAndApplyEvent(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  // 1. サポーター登録
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow([
-      '登録ID', '会員番号', '登録日時', 'ステータス', 'メールアドレス', '認証トークン', 'トークン有効期限',
-      'サポート種別', '名前', '電話番号', '関心分野', 'メッセージ', '言語', '認証日時', '登録完了日時'
-    ]);
-    sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
-    sheet.setFrozenRows(1);
-  }
-
-  // メールアドレスの重複チェック
-  const existingData = sheet.getDataRange().getValues();
-  for (let i = 1; i < existingData.length; i++) {
-    if (existingData[i][4] === data.email && existingData[i][3] === '登録完了') {
-      return { success: false, message: 'Email already registered as supporter' };
-    }
-  }
-
-  // 会員番号を発行
-  const memberNumber = generateMemberNumber(sheet);
-  const registrationId = 'SUP-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMddHHmmss');
-  const timestamp = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-
-  // サポート種別を日本語に変換
-  const supportTypeMap = {
-    'personal': '個人サポーター',
-    'corporate': '法人・企業',
-    'volunteer': 'ボランティア'
-  };
-
-  // サポーター登録（認証スキップで直接登録完了）
-  sheet.appendRow([
-    registrationId,
-    memberNumber,
-    timestamp,
-    '登録完了',
-    data.email,
-    '', // トークンなし
-    '', // 期限なし
-    supportTypeMap[data.supportType] || data.supportType,
-    data.name,
-    data.phone || '',
-    'イベント申込同時登録',
-    data.notes || '',
-    data.language || 'ja',
-    timestamp, // 認証日時
-    timestamp  // 登録完了日時
-  ]);
-
-  // 2. イベント申し込み
-  let appSheet = ss.getSheetByName(APPLICATION_SHEET_NAME);
-  if (!appSheet) {
-    appSheet = ss.insertSheet(APPLICATION_SHEET_NAME);
-    appSheet.appendRow([
-      '申込ID', '申込日時', 'イベントID', 'イベント名', '開催日', '会場',
-      '申込方法', '会員番号', '名前', 'メールアドレス', '電話番号', '参加人数', '備考', 'ステータス'
-    ]);
-    appSheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
-    appSheet.setFrozenRows(1);
-  }
-
-  const applicationId = generateApplicationId(appSheet);
-
-  appSheet.appendRow([
-    applicationId,
-    timestamp,
-    data.eventId,
-    data.eventTitle,
-    data.eventDate,
-    data.eventVenue,
-    '新規サポーター登録',
-    memberNumber,
-    data.name,
-    data.email,
-    data.phone || '',
-    data.attendees || '1',
-    data.notes || '',
-    '受付済'
-  ]);
-
-  // 3. 登録完了 + イベント申込確認メールを送信
-  sendRegisterAndApplyConfirmation(data, memberNumber, registrationId, applicationId);
-
-  return {
-    success: true,
-    memberNumber: memberNumber,
-    registrationId: registrationId,
-    applicationId: applicationId
-  };
-}
-
-/**
- * サポーター登録＋イベント申込確認メールを送信
- */
-function sendRegisterAndApplyConfirmation(data, memberNumber, registrationId, applicationId) {
-  const isJapanese = data.language === 'ja';
-
-  const subject = isJapanese
-    ? `【三晶プロダクション】サポーター登録 & イベント申込完了 - 会員番号: ${memberNumber}`
-    : `【Mitsu Akira Production】Registration & Application Complete - Member No: ${memberNumber}`;
-
-  const body = isJapanese
-    ? `
-${data.name} 様
-
-この度は三晶プロダクションのサポーターにご登録いただき、
-また、イベントへのお申し込み、誠にありがとうございます。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ サポーター会員情報
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-会員番号: ${memberNumber}
-登録ID: ${registrationId}
-メールアドレス: ${data.email}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ イベント申込内容
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-申込番号: ${applicationId}
-イベント: ${data.eventTitle}
-開催日: ${data.eventDate}
-会場: ${data.eventVenue}
-参加人数: ${data.attendees || 1}名
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-上記の会員番号は、今後のイベント参加時に
-ご利用いただく場合がございます。大切に保管してください。
 
 当日は開場時間に合わせてお越しください。
-ご来場を心よりお待ちしております。
+
+キャンセルをご希望の場合は、お早めにご連絡ください。
 
 ─────────────────────────
 三晶プロダクション
@@ -1275,57 +965,261 @@ ${SITE_URL}
 〒961-0905
 福島県白河市道場小路 31-14
 ─────────────────────────
-`
-    : `
-Dear ${data.name},
+`;
 
-Thank you for registering as a supporter of Mitsu Akira Production
-and for your event application.
+  GmailApp.sendEmail(info.email, subject, body);
+}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ Supporter Member Information
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function sendMemberConfirmationEmail(info) {
+  const gasUrl = ScriptApp.getService().getUrl();
+  const confirmUrl = `${gasUrl}?action=confirmMember&token=${info.token}`;
 
-Member Number: ${memberNumber}
-Registration ID: ${registrationId}
-Email: ${data.email}
+  const subject = '【三晶プロダクション】サポーター登録確認';
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ Event Application Details
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const body = `
+${info.name} 様
 
-Application No: ${applicationId}
-Event: ${data.eventTitle}
-Date: ${data.eventDate}
-Venue: ${data.eventVenue}
-Attendees: ${data.attendees || 1}
+サポーター登録のお申し込みありがとうございます。
+
+以下のリンクをクリックして、登録を完了してください。
+（24時間以内にクリックしないと登録は無効になります）
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+▼ 登録を完了する
+${confirmUrl}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Please keep your member number safe.
-You may need it for future event participation.
-
-Please arrive at the venue by the opening time.
-We look forward to seeing you!
+※このメールに心当たりがない場合は、このメールを破棄してください。
 
 ─────────────────────────
-Mitsu Akira Production
+三晶プロダクション
 ${SITE_URL}
-
-31-14 Dojo-koji, Shirakawa,
-Fukushima 961-0905, Japan
 ─────────────────────────
 `;
 
-  GmailApp.sendEmail(data.email, subject, body);
+  GmailApp.sendEmail(info.email, subject, body);
 }
 
-/**
- * イベント取得テスト用関数
- */
-function testGetEvents() {
-  const events = getEvents();
-  Logger.log('Events count: ' + events.length);
-  Logger.log(JSON.stringify(events, null, 2));
-  return events;
+function sendMemberWelcomeEmail(info) {
+  const subject = `【三晶プロダクション】サポーター登録完了 - 会員番号: ${info.memberId}`;
+
+  const body = `
+${info.name} 様
+
+三晶プロダクションのサポーターにご登録いただき、
+誠にありがとうございます。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 会員情報
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+会員番号: ${info.memberId}
+メールアドレス: ${info.email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+上記の会員番号は、イベント申し込み時に
+会員価格が適用されます。大切に保管してください。
+
+今後、以下のような情報をお届けいたします：
+・落語会の先行案内
+・サポーター限定イベント情報
+・その他お得な情報
+
+白河から世界へ、落語の未来を共に創っていただけることを
+心より嬉しく思います。
+
+─────────────────────────
+三晶プロダクション
+${SITE_URL}
+
+〒961-0905
+福島県白河市道場小路 31-14
+─────────────────────────
+`;
+
+  GmailApp.sendEmail(info.email, subject, body);
+}
+
+// ===== メール送信ログ =====
+function logEmail(toEmail, toName, subject, template, relatedId, status) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_EMAIL_LOG);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_EMAIL_LOG);
+    sheet.appendRow(['log_id', 'to_email', 'to_name', 'subject', 'template', 'related_id', 'status', 'sent_at', 'error_message']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+
+  const logId = 'LOG-' + Date.now();
+  const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
+
+  sheet.appendRow([logId, toEmail, toName, subject, template, relatedId, status, now, '']);
+}
+
+// ===== ユーティリティ =====
+function generateToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 64; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
+function generateMemberId(sheet) {
+  const data = sheet.getDataRange().getValues();
+  let maxNum = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const id = data[i][0];
+    if (id && typeof id === 'string' && id.startsWith('MP-')) {
+      const num = parseInt(id.substring(3), 10);
+      if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+  }
+
+  return 'MP-' + String(maxNum + 1).padStart(4, '0');
+}
+
+function generateEventId(date) {
+  const dateStr = date.replace(/-/g, '');
+  return 'EV-' + dateStr + '-01';
+}
+
+function generateReservationId(sheet, dateStr) {
+  const data = sheet.getDataRange().getValues();
+  let maxNum = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const id = data[i][0];
+    if (id && typeof id === 'string' && id.startsWith('RS-' + dateStr)) {
+      const num = parseInt(id.split('-')[2], 10);
+      if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+  }
+
+  return 'RS-' + dateStr + '-' + String(maxNum + 1).padStart(3, '0');
+}
+
+function formatDate(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, 'Asia/Tokyo', 'yyyy-MM-dd');
+  }
+  return String(value);
+}
+
+function formatTime(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, 'Asia/Tokyo', 'HH:mm');
+  }
+  return String(value);
+}
+
+// ===== HTML生成 =====
+function createErrorPage(message) {
+  return HtmlService.createHtmlOutput(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>エラー - 三晶プロダクション</title>
+      <style>
+        body { font-family: "Noto Sans JP", sans-serif; text-align: center; padding: 50px 20px; background: #F5F0E8; }
+        .error { color: #8B0A1A; }
+        h1 { font-size: 24px; margin-bottom: 20px; }
+        p { color: #555; line-height: 1.8; }
+        a { color: #8B0A1A; }
+      </style>
+    </head>
+    <body>
+      <h1 class="error">エラー</h1>
+      <p>${message}</p>
+      <p><a href="${SITE_URL}">サイトに戻る</a></p>
+    </body>
+    </html>
+  `);
+}
+
+function createSuccessPage(message, id) {
+  return HtmlService.createHtmlOutput(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>完了 - 三晶プロダクション</title>
+      <style>
+        body { font-family: "Noto Sans JP", sans-serif; text-align: center; padding: 50px 20px; background: #F5F0E8; }
+        .success { color: #2A5C3D; }
+        h1 { font-size: 24px; margin-bottom: 20px; }
+        p { color: #555; line-height: 1.8; }
+        .id { font-family: monospace; color: #8B0A1A; font-size: 18px; }
+        a { color: #8B0A1A; }
+      </style>
+    </head>
+    <body>
+      <h1 class="success">✅ ${message}</h1>
+      ${id ? `<p class="id">${id}</p>` : ''}
+      <p><a href="${SITE_URL}">サイトに戻る</a></p>
+    </body>
+    </html>
+  `);
+}
+
+function createMemberSuccessPage(memberId, name) {
+  return HtmlService.createHtmlOutput(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>サポーター登録完了 - 三晶プロダクション</title>
+      <style>
+        body { font-family: "Noto Sans JP", sans-serif; text-align: center; padding: 50px 20px; background: #F5F0E8; }
+        .success { color: #2A5C3D; }
+        h1 { font-size: 24px; margin-bottom: 20px; }
+        p { color: #555; line-height: 1.8; }
+        .member-id { font-family: monospace; color: #8B0A1A; font-size: 24px; font-weight: bold; padding: 20px; background: white; margin: 20px auto; max-width: 300px; }
+        a { color: #8B0A1A; }
+        .btn { display: inline-block; padding: 15px 30px; background: #8B0A1A; color: white; text-decoration: none; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <h1 class="success">🎉 サポーター登録完了</h1>
+      <p>${name} 様</p>
+      <p>サポーター登録が完了しました。</p>
+      <p>会員番号:</p>
+      <div class="member-id">${memberId}</div>
+      <p>この会員番号はイベント申し込み時に<br>会員価格が適用されます。</p>
+      <a href="${SITE_URL}" class="btn">サイトに戻る</a>
+    </body>
+    </html>
+  `);
+}
+
+// ===== テスト関数 =====
+function testSetup() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // イベントシートを作成
+  let eventSheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!eventSheet) {
+    eventSheet = ss.insertSheet(SHEET_EVENTS);
+    eventSheet.appendRow([
+      'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
+      'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
+      'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
+      'status', 'image_url', 'created_at', 'updated_at'
+    ]);
+    eventSheet.getRange(1, 1, 1, 22).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventSheet.setFrozenRows(1);
+  }
+
+  Logger.log('Setup complete');
 }
