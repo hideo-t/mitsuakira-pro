@@ -187,7 +187,38 @@ const GAS_URL = '新しいデプロイURL';
 
 ---
 
-## 6. 本番運用時の注意
+## 6. チャネル追跡（LINE/Web/Email）
+
+### 予約データに記録される情報
+
+`reservations` シートの `channel` カラムに流入経路を記録：
+
+| チャネル | 説明 |
+|---------|------|
+| `web` | 通常のWebサイト経由（デフォルト） |
+| `line` | LINE経由 |
+| `email` | メール経由 |
+| `sns` | SNS経由 |
+
+### LINE経由の追跡方法
+
+1. **URLパラメータ**: `?from=line`
+   - LINEのリッチメニューやメッセージからのリンクに追加
+   - 例: `https://hideo-t.github.io/mitsuakira-pro/?from=line#events`
+
+2. **リファラー検出**
+   - `line.me` または `lin.ee` からのリファラーを自動検出
+
+### LINE公式アカウント設定
+
+LINE Official Account Managerで設定：
+1. **リッチメニュー** - イベントページへのリンクに `?from=line` を追加
+2. **あいさつメッセージ** - サイトリンクに `?from=line` を追加
+3. **自動応答** - 「イベント」「予約」等のキーワードで案内
+
+---
+
+## 7. 本番運用時の注意
 
 1. **管理者マスタのパスワードを変更する**
 2. **SPREADSHEET_ID を本番用に変更する**
