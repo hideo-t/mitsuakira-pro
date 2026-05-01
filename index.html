@@ -1589,51 +1589,37 @@
     nav ul {
       position: fixed;
       top: 0;
-      right: 0;
-      bottom: 0;
-      width: 260px;
+      right: -280px;
+      width: 280px;
+      height: 100vh;
       background: #F5F0E8;
       flex-direction: column;
       align-items: flex-start;
-      padding: 70px 24px 40px;
-      gap: 4px;
-      transform: translateX(100%);
-      transition: transform 0.3s;
-      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+      padding: 80px 24px 30px;
+      gap: 0;
+      transition: right 0.3s ease;
+      box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
       z-index: 1000;
       overflow-y: auto;
-      /* スクロールバーを常に表示 */
-      scrollbar-width: thin;
-      scrollbar-color: rgba(139, 10, 26, 0.3) transparent;
     }
 
-    /* Webkit用スクロールバー */
-    nav ul::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    nav ul::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    nav ul::-webkit-scrollbar-thumb {
-      background: rgba(139, 10, 26, 0.3);
-      border-radius: 3px;
+    nav ul.open {
+      right: 0;
     }
 
     nav ul li {
       width: 100%;
+      border-bottom: 1px solid rgba(26, 40, 64, 0.1);
+    }
+
+    nav ul li:last-child {
+      border-bottom: none;
     }
 
     nav ul li a {
       display: block;
-      padding: 10px 0;
-      font-size: 14px;
-      border-bottom: 1px solid rgba(26, 40, 64, 0.08);
-    }
-
-    nav ul li:last-child a {
-      border-bottom: none;
+      padding: 12px 0;
+      font-size: 15px;
     }
 
     /* ハンバーガーメニュー内のLINEリンク */
@@ -1641,31 +1627,14 @@
       display: inline-block;
       background: #06C755;
       color: white !important;
-      padding: 8px 14px;
+      padding: 10px 16px;
       border-radius: 6px;
       font-weight: 700;
-      border-bottom: none !important;
+      margin: 4px 0;
     }
 
     nav ul .nav-line-link:hover {
       background: #05a847;
-    }
-
-    nav ul.open {
-      transform: translateX(0);
-    }
-
-
-    /* メニューオープン時のオーバーレイ */
-    nav ul.open::before {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 260px;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.3);
-      z-index: -1;
     }
 
     .lang-switch {
