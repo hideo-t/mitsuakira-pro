@@ -760,14 +760,30 @@ function getEvents() {
   const events = [];
 
   for (let i = 1; i < data.length; i++) {
+    // 日付・時刻データを文字列に変換
+    const dateVal = data[i][4];
+    const dateStr = dateVal instanceof Date
+      ? Utilities.formatDate(dateVal, 'Asia/Tokyo', 'yyyy-MM-dd')
+      : String(dateVal || '');
+
+    const openTimeVal = data[i][5];
+    const openTimeStr = openTimeVal instanceof Date
+      ? Utilities.formatDate(openTimeVal, 'Asia/Tokyo', 'HH:mm')
+      : String(openTimeVal || '');
+
+    const startTimeVal = data[i][6];
+    const startTimeStr = startTimeVal instanceof Date
+      ? Utilities.formatDate(startTimeVal, 'Asia/Tokyo', 'HH:mm')
+      : String(startTimeVal || '');
+
     events.push({
       id: data[i][0],
       createdAt: data[i][1],
       status: data[i][2],
       title: data[i][3],
-      date: data[i][4],
-      openTime: data[i][5],
-      startTime: data[i][6],
+      date: dateStr,
+      openTime: openTimeStr,
+      startTime: startTimeStr,
       venue: data[i][7],
       address: data[i][8],
       venueUrl: data[i][9],
@@ -782,8 +798,12 @@ function getEvents() {
     });
   }
 
-  // 開催日の降順でソート
-  events.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // 開催日の降順でソート（日付を文字列に変換）
+  events.sort((a, b) => {
+    const dateA = a.date ? String(a.date) : '';
+    const dateB = b.date ? String(b.date) : '';
+    return dateB.localeCompare(dateA);
+  });
 
   return events;
 }
@@ -1096,4 +1116,14 @@ function initAdminSheet() {
   sheet.appendRow(['admin@mitsuakira.com', 'admin123', '管理者', 'admin', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd')]);
 
   Logger.log('Admin sheet initialized');
+}
+
+/**
+ * イベント取得テスト用関数
+ */
+function testGetEvents() {
+  const events = getEvents();
+  Logger.log('Events count: ' + events.length);
+  Logger.log(JSON.stringify(events, null, 2));
+  return events;
 }
