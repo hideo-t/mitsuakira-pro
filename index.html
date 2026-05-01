@@ -1586,13 +1586,30 @@
       background: #F5F0E8;
       flex-direction: column;
       align-items: flex-start;
-      padding: 80px 24px 30px;
+      padding: 80px 24px 60px;
       gap: 16px;
       transform: translateX(100%);
       transition: transform 0.3s;
       box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
       z-index: 1000;
       overflow-y: auto;
+      /* スクロールバーを常に表示 */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(139, 10, 26, 0.3) transparent;
+    }
+
+    /* Webkit用スクロールバー */
+    nav ul::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    nav ul::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    nav ul::-webkit-scrollbar-thumb {
+      background: rgba(139, 10, 26, 0.3);
+      border-radius: 3px;
     }
 
     nav ul li {
@@ -1607,6 +1624,28 @@
 
     nav ul.open {
       transform: translateX(0);
+    }
+
+    /* スクロールヒント（下部グラデーション） */
+    nav ul::after {
+      content: "↓ scroll";
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 260px;
+      padding: 12px 0;
+      background: linear-gradient(to top, #F5F0E8 60%, transparent);
+      text-align: center;
+      font-size: 11px;
+      color: var(--color-sumi-light);
+      letter-spacing: 0.1em;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    nav ul.open::after {
+      opacity: 1;
     }
 
     /* メニューオープン時のオーバーレイ */
