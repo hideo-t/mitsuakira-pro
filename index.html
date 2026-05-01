@@ -2103,252 +2103,179 @@
 
 <!-- Event Application Modal -->
 <div class="modal-overlay" id="applyModal">
-  <div class="modal">
+  <div class="modal" style="max-width: 500px;">
     <div class="modal-header">
       <h3 class="modal-title ja-only">イベント申し込み</h3>
       <h3 class="modal-title en-only">Event Application</h3>
       <button class="modal-close" onclick="closeApplyModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="event-summary" id="applyEventSummary">
-        <div class="event-summary-title" id="applyEventTitle"></div>
-        <div class="event-summary-info" id="applyEventInfo"></div>
-      </div>
-
-      <input type="hidden" id="applyEventId">
-
-      <!-- 申し込み方法選択 -->
-      <div class="apply-method-selector" id="methodSelector">
-        <p style="font-weight: 500; margin-bottom: 12px;" class="ja-only">申し込み方法を選択</p>
-        <p style="font-weight: 500; margin-bottom: 12px;" class="en-only">Select Application Method</p>
-
-        <div class="apply-method-option">
-          <input type="radio" name="applyMethod" id="methodMember" value="member">
-          <label for="methodMember">
-            <span class="method-icon">⭐</span>
-            <div class="method-info">
-              <div class="method-name ja-only">すでにサポーターの方</div>
-              <div class="method-name en-only">Existing Supporter</div>
-              <div class="method-desc ja-only">会員番号をお持ちの方・優先予約</div>
-              <div class="method-desc en-only">For members with member number - Priority</div>
-            </div>
-          </label>
+      <!-- STEP 1: 申し込みフォーム -->
+      <div id="applyStep1">
+        <div class="event-summary" id="applyEventSummary">
+          <div class="event-summary-title" id="applyEventTitle"></div>
+          <div class="event-summary-info" id="applyEventInfo"></div>
+          <div class="event-summary-price" id="applyEventPrice"></div>
+          <div class="event-summary-seats" id="applyEventSeats"></div>
         </div>
 
-        <div class="apply-method-option">
-          <input type="radio" name="applyMethod" id="methodNewMember" value="newMember">
-          <label for="methodNewMember">
-            <span class="method-icon">✨</span>
-            <div class="method-info">
-              <div class="method-name ja-only">同時にサポーターになる</div>
-              <div class="method-name en-only">Become a Supporter</div>
-              <div class="method-desc ja-only">イベント申込と同時にサポーター登録</div>
-              <div class="method-desc en-only">Register as supporter with event application</div>
-            </div>
-          </label>
-        </div>
+        <input type="hidden" id="applyEventId">
+        <input type="hidden" id="applyPriceGeneral">
+        <input type="hidden" id="applyPriceMember">
 
-        <div class="apply-method-option">
-          <input type="radio" name="applyMethod" id="methodLine" value="line">
-          <label for="methodLine">
-            <span class="method-icon">💬</span>
-            <div class="method-info">
-              <div class="method-name ja-only">LINE で申し込む</div>
-              <div class="method-name en-only">Apply via LINE</div>
-              <div class="method-desc ja-only">公式LINEから簡単に申し込み</div>
-              <div class="method-desc en-only">Quick application via official LINE</div>
-            </div>
-          </label>
-        </div>
+        <div class="form-message" id="applyFormMessage"></div>
 
-        <div class="apply-method-option">
-          <input type="radio" name="applyMethod" id="methodGuest" value="guest">
-          <label for="methodGuest">
-            <span class="method-icon">👤</span>
-            <div class="method-info">
-              <div class="method-name ja-only">一般申し込み</div>
-              <div class="method-name en-only">General Application</div>
-              <div class="method-desc ja-only">会員登録なしでお申し込み</div>
-              <div class="method-desc en-only">Apply without registration</div>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <!-- サポーター会員フォーム -->
-      <div class="apply-form-fields" id="formMember">
-        <div class="form-message" id="memberFormMessage"></div>
         <div class="form-group">
-          <label class="ja-only">会員番号 *</label>
-          <label class="en-only">Member Number *</label>
-          <input type="text" id="memberNumber" placeholder="M-0001">
+          <label class="ja-only">氏名 <span class="required">*必須</span></label>
+          <label class="en-only">Name <span class="required">*Required</span></label>
+          <input type="text" id="applyName" placeholder="山田 太郎" required>
         </div>
+
         <div class="form-group">
-          <label class="ja-only">登録メールアドレス *</label>
-          <label class="en-only">Registered Email *</label>
-          <input type="email" id="memberEmail" placeholder="example@email.com">
+          <label class="ja-only">フリガナ</label>
+          <label class="en-only">Name (Kana)</label>
+          <input type="text" id="applyNameKana" placeholder="ヤマダ タロウ">
         </div>
+
         <div class="form-group">
-          <label class="ja-only">参加人数</label>
-          <label class="en-only">Number of Attendees</label>
-          <select id="memberAttendees">
+          <label class="ja-only">メールアドレス <span class="required">*必須</span></label>
+          <label class="en-only">Email <span class="required">*Required</span></label>
+          <input type="email" id="applyEmail" placeholder="example@email.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="ja-only">電話番号 <span class="required">*必須</span></label>
+          <label class="en-only">Phone <span class="required">*Required</span></label>
+          <input type="tel" id="applyPhone" placeholder="090-1234-5678" required>
+        </div>
+
+        <div class="form-group">
+          <label class="ja-only">参加人数 <span class="required">*必須</span></label>
+          <label class="en-only">Number of Attendees <span class="required">*Required</span></label>
+          <select id="applyPartySize" onchange="updatePriceDisplay()">
             <option value="1">1名</option>
             <option value="2">2名</option>
             <option value="3">3名</option>
             <option value="4">4名</option>
-            <option value="5">5名以上</option>
+            <option value="5">5名</option>
+            <option value="6">6名以上（備考欄に人数をご記入ください）</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="ja-only">備考</label>
-          <label class="en-only">Notes</label>
-          <textarea id="memberNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
-        </div>
-        <button class="btn btn-primary" style="width: 100%;" onclick="submitMemberApplication()">
-          <span class="ja-only">申し込む</span>
-          <span class="en-only">Submit Application</span>
-        </button>
-      </div>
 
-      <!-- 一般申し込みフォーム -->
-      <div class="apply-form-fields" id="formGuest">
-        <div class="form-message" id="guestFormMessage"></div>
-        <div class="form-group">
-          <label class="ja-only">お名前 *</label>
-          <label class="en-only">Name *</label>
-          <input type="text" id="guestName" placeholder="山田 太郎">
+        <div class="member-section" style="margin: 24px 0; padding: 16px; background: rgba(26,40,64,0.05); border-left: 3px solid var(--color-edo);">
+          <p style="font-weight: 500; margin-bottom: 12px; font-size: 14px;" class="ja-only">サポーター会員の方</p>
+          <p style="font-weight: 500; margin-bottom: 12px; font-size: 14px;" class="en-only">For Supporter Members</p>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="ja-only" style="font-size: 13px;">会員番号（お持ちの方のみ）</label>
+            <label class="en-only" style="font-size: 13px;">Member ID (if you have one)</label>
+            <input type="text" id="applyMemberId" placeholder="MP-0001" style="font-family: monospace;">
+          </div>
+          <p style="font-size: 12px; color: var(--color-sumi-light);" class="ja-only">
+            会員番号をお持ちの方は入力すると会員価格が適用されます
+          </p>
+          <p style="font-size: 12px; color: var(--color-sumi-light);" class="en-only">
+            Enter your member ID for member pricing
+          </p>
         </div>
-        <div class="form-group">
-          <label class="ja-only">メールアドレス *</label>
-          <label class="en-only">Email *</label>
-          <input type="email" id="guestEmail" placeholder="example@email.com">
-        </div>
-        <div class="form-group">
-          <label class="ja-only">電話番号</label>
-          <label class="en-only">Phone</label>
-          <input type="tel" id="guestPhone" placeholder="090-1234-5678">
-        </div>
-        <div class="form-group">
-          <label class="ja-only">参加人数</label>
-          <label class="en-only">Number of Attendees</label>
-          <select id="guestAttendees">
-            <option value="1">1名</option>
-            <option value="2">2名</option>
-            <option value="3">3名</option>
-            <option value="4">4名</option>
-            <option value="5">5名以上</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="ja-only">備考</label>
-          <label class="en-only">Notes</label>
-          <textarea id="guestNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
-        </div>
-        <button class="btn btn-primary" style="width: 100%;" onclick="submitGuestApplication()">
-          <span class="ja-only">申し込む</span>
-          <span class="en-only">Submit Application</span>
-        </button>
-      </div>
 
-      <!-- 同時にサポーターになるフォーム -->
-      <div class="apply-form-fields" id="formNewMember">
-        <div class="form-message" id="newMemberFormMessage"></div>
-        <p style="font-size: 14px; color: var(--color-hi); margin-bottom: 16px; padding: 12px; background: rgba(139,10,26,0.08); border-left: 3px solid var(--color-hi);" class="ja-only">
-          イベント申込と同時にサポーター登録ができます。<br>登録完了後、会員番号をメールでお届けします。
-        </p>
-        <p style="font-size: 14px; color: var(--color-hi); margin-bottom: 16px; padding: 12px; background: rgba(139,10,26,0.08); border-left: 3px solid var(--color-hi);" class="en-only">
-          Register as a supporter while applying for the event.<br>You will receive your member number by email.
-        </p>
-        <div class="form-group">
-          <label class="ja-only">お名前 *</label>
-          <label class="en-only">Name *</label>
-          <input type="text" id="newMemberName" placeholder="山田 太郎">
-        </div>
-        <div class="form-group">
-          <label class="ja-only">メールアドレス *</label>
-          <label class="en-only">Email *</label>
-          <input type="email" id="newMemberEmail" placeholder="example@email.com">
-        </div>
-        <div class="form-group">
-          <label class="ja-only">電話番号</label>
-          <label class="en-only">Phone</label>
-          <input type="tel" id="newMemberPhone" placeholder="090-1234-5678">
-        </div>
-        <div class="form-group">
-          <label class="ja-only">サポート種別</label>
-          <label class="en-only">Support Type</label>
-          <select id="newMemberSupportType">
-            <option value="personal" class="ja-only">個人サポーター</option>
-            <option value="personal" class="en-only">Individual</option>
-            <option value="corporate" class="ja-only">法人・企業</option>
-            <option value="corporate" class="en-only">Corporate</option>
-            <option value="volunteer" class="ja-only">ボランティア</option>
-            <option value="volunteer" class="en-only">Volunteer</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="ja-only">参加人数</label>
-          <label class="en-only">Number of Attendees</label>
-          <select id="newMemberAttendees">
-            <option value="1">1名</option>
-            <option value="2">2名</option>
-            <option value="3">3名</option>
-            <option value="4">4名</option>
-            <option value="5">5名以上</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="ja-only">備考</label>
-          <label class="en-only">Notes</label>
-          <textarea id="newMemberNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
-        </div>
-        <div class="form-group">
-          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="newMemberPrivacy" style="margin-top: 4px;">
-            <span style="font-size: 13px;">
-              <span class="ja-only">個人情報の取り扱いに同意する</span>
-              <span class="en-only">I agree to the privacy policy</span>
-            </span>
+        <div class="register-section" style="margin: 24px 0; padding: 16px; background: rgba(139,10,26,0.05); border-left: 3px solid var(--color-hi);">
+          <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="applyWantsToRegister" style="margin-top: 3px; width: 18px; height: 18px;">
+            <div>
+              <span style="font-weight: 500; font-size: 14px;" class="ja-only">この機会にサポーター登録する（無料）</span>
+              <span style="font-weight: 500; font-size: 14px;" class="en-only">Become a Supporter (Free)</span>
+              <p style="font-size: 12px; color: var(--color-sumi-light); margin-top: 4px;" class="ja-only">
+                登録すると次回公演の先行案内が届きます。将来の会員特典の対象になります。
+              </p>
+              <p style="font-size: 12px; color: var(--color-sumi-light); margin-top: 4px;" class="en-only">
+                Get early access to future events and member benefits.
+              </p>
+            </div>
           </label>
         </div>
-        <button class="btn btn-primary" style="width: 100%;" onclick="submitNewMemberApplication()">
-          <span class="ja-only">サポーター登録 & イベント申し込み</span>
-          <span class="en-only">Register & Apply</span>
+
+        <div class="form-group">
+          <label class="ja-only">備考</label>
+          <label class="en-only">Notes</label>
+          <textarea id="applyNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
+        </div>
+
+        <div class="line-section" style="margin: 24px 0; padding: 16px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); text-align: center;">
+          <p style="color: white; font-size: 14px; margin-bottom: 12px;" class="ja-only">
+            LINEでも申し込みできます
+          </p>
+          <p style="color: white; font-size: 14px; margin-bottom: 12px;" class="en-only">
+            You can also apply via LINE
+          </p>
+          <a href="https://lin.ee/zMR1NuAF" target="_blank" class="btn-line" style="background: white; color: #06C755; padding: 10px 24px; text-decoration: none; font-weight: 700; display: inline-block;">
+            <span class="ja-only">公式LINE で申し込む</span>
+            <span class="en-only">Apply via LINE</span>
+          </a>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%;" onclick="showConfirmStep()">
+          <span class="ja-only">確認画面へ</span>
+          <span class="en-only">Review Application</span>
         </button>
       </div>
 
-      <!-- 申し込み完了 -->
-      <div class="apply-form-fields" id="formComplete">
-        <div style="text-align: center; padding: 20px 0;">
-          <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-          <h4 class="ja-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">お申し込みを受け付けました</h4>
-          <h4 class="en-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">Application Received</h4>
-          <p class="ja-only" style="color: var(--color-sumi-light); font-size: 14px;">確認メールをお送りしました。<br>当日のご来場をお待ちしております。</p>
-          <p class="en-only" style="color: var(--color-sumi-light); font-size: 14px;">A confirmation email has been sent.<br>We look forward to seeing you!</p>
-          <button class="btn btn-outline" style="margin-top: 24px;" onclick="closeApplyModal()">
-            <span class="ja-only">閉じる</span>
-            <span class="en-only">Close</span>
+      <!-- STEP 2: 確認画面 -->
+      <div id="applyStep2" style="display: none;">
+        <h4 style="font-family: var(--serif); font-size: 18px; margin-bottom: 20px; text-align: center;" class="ja-only">お申し込み内容の確認</h4>
+        <h4 style="font-family: var(--serif); font-size: 18px; margin-bottom: 20px; text-align: center;" class="en-only">Review Your Application</h4>
+
+        <div id="confirmDetails" style="background: white; padding: 20px; border: 1px solid rgba(26,40,64,0.1); margin-bottom: 20px;">
+          <!-- 確認内容がここに表示される -->
+        </div>
+
+        <div class="form-message" id="confirmFormMessage"></div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn btn-outline" style="flex: 1;" onclick="showFormStep()">
+            <span class="ja-only">修正する</span>
+            <span class="en-only">Edit</span>
+          </button>
+          <button class="btn btn-primary" style="flex: 2;" onclick="submitReservation()" id="submitBtn">
+            <span class="ja-only">この内容で申し込む</span>
+            <span class="en-only">Submit Application</span>
           </button>
         </div>
       </div>
 
-      <!-- 新規サポーター登録＋申し込み完了 -->
-      <div class="apply-form-fields" id="formCompleteNewMember">
+      <!-- STEP 3: 仮登録完了 -->
+      <div id="applyStep3" style="display: none;">
         <div style="text-align: center; padding: 20px 0;">
-          <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
-          <h4 class="ja-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">登録・申し込み完了</h4>
-          <h4 class="en-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">Registration & Application Complete</h4>
-          <p class="ja-only" style="color: var(--color-sumi-light); font-size: 14px;">
-            サポーター登録とイベント申し込みを<br>受け付けました。<br><br>
-            確認メールをお送りしました。<br>会員番号をメールでご確認ください。<br><br>
-            当日のご来場をお待ちしております。
+          <div style="font-size: 48px; margin-bottom: 16px;">📧</div>
+          <h4 class="ja-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 16px;">確認メールを送信しました</h4>
+          <h4 class="en-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 16px;">Confirmation Email Sent</h4>
+
+          <div style="background: rgba(139,10,26,0.08); padding: 20px; margin: 20px 0; text-align: left;">
+            <p style="font-weight: 700; margin-bottom: 12px; color: var(--color-hi);" class="ja-only">
+              予約を確定するには
+            </p>
+            <p style="font-weight: 700; margin-bottom: 12px; color: var(--color-hi);" class="en-only">
+              To Confirm Your Reservation
+            </p>
+            <p style="font-size: 14px; line-height: 1.8;" class="ja-only">
+              ご入力いただいたメールアドレスに確認メールをお送りしました。<br><br>
+              <strong>メール内のリンクをクリック</strong>して予約を確定してください。<br><br>
+              ※24時間以内にクリックしないと予約は無効になります。
+            </p>
+            <p style="font-size: 14px; line-height: 1.8;" class="en-only">
+              A confirmation email has been sent to your email address.<br><br>
+              <strong>Click the link in the email</strong> to confirm your reservation.<br><br>
+              *The link expires in 24 hours.
+            </p>
+          </div>
+
+          <p style="font-size: 13px; color: var(--color-sumi-light); margin-bottom: 20px;" class="ja-only">
+            メールが届かない場合は、迷惑メールフォルダをご確認ください。
           </p>
-          <p class="en-only" style="color: var(--color-sumi-light); font-size: 14px;">
-            Your supporter registration and event<br>application have been received.<br><br>
-            A confirmation email has been sent.<br>Please check your member number in the email.<br><br>
-            We look forward to seeing you!
+          <p style="font-size: 13px; color: var(--color-sumi-light); margin-bottom: 20px;" class="en-only">
+            If you don't receive the email, please check your spam folder.
           </p>
-          <button class="btn btn-outline" style="margin-top: 24px;" onclick="closeApplyModal()">
+
+          <button class="btn btn-outline" onclick="closeApplyModal()">
             <span class="ja-only">閉じる</span>
             <span class="en-only">Close</span>
           </button>
@@ -2805,7 +2732,7 @@
   // ============ Supporter Registration Logic (2-Step with Email Verification) ============
 
   // Google Apps Script Web App URL
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxGXGamwDLMLArYIIypxna-AFpFgRvXHcsxqKOvKUIrLI35VpDwtK102V14z7Kz0Ol6qA/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzZ5hG1vFu0IJdV71UPRZ_TyXXiVpqT0XaXLPFJCMnvY3W3MKUE-wva3luob68p-08Dqw/exec';
 
   // Check URL parameters on page load (for email verification callback)
   document.addEventListener('DOMContentLoaded', function() {
@@ -3044,47 +2971,81 @@
         ? `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`
         : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+      // Calculate remaining seats
+      const capacity = parseInt(ev.capacity) || 0;
+      const reservedCount = parseInt(ev.reserved_count) || 0;
+      const remainingSeats = capacity - reservedCount;
+      const seatsText = capacity > 0
+        ? (isJapanese ? `残り ${remainingSeats} 席` : `${remainingSeats} seats left`)
+        : '';
+
+      // Price display
+      const priceGeneral = parseInt(ev.price_general) || 0;
+      const priceMember = parseInt(ev.price_member) || 0;
+      let priceText = '';
+      if (priceGeneral > 0) {
+        priceText = isJapanese
+          ? `一般 ¥${priceGeneral.toLocaleString()}`
+          : `General ¥${priceGeneral.toLocaleString()}`;
+        if (priceMember > 0 && priceMember < priceGeneral) {
+          priceText += isJapanese
+            ? ` / 会員 ¥${priceMember.toLocaleString()}`
+            : ` / Member ¥${priceMember.toLocaleString()}`;
+        }
+      }
+
+      // Use venue_name if available, fallback to venue
+      const venueName = ev.venue_name || ev.venue || '';
+
       return `
         <div class="event-card">
           ${ev.imageUrl ? `<div class="event-card-image"><img src="${ev.imageUrl}" alt="${ev.title}"></div>` : ''}
           <div class="event-card-header">
-            <div class="event-card-date">${dateStr} ${ev.startTime || ''}</div>
+            <div class="event-card-date">${dateStr} ${ev.startTime || ev.time_start || ''}</div>
             <h3 class="event-card-title">${ev.title}</h3>
           </div>
           <div class="event-card-body">
-            ${ev.openTime ? `
+            ${ev.openTime || ev.time_open ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '時間' : 'Time'}</span>
-                <span class="event-detail-value">${isJapanese ? '開場' : 'Open'} ${ev.openTime} / ${isJapanese ? '開演' : 'Start'} ${ev.startTime}</span>
+                <span class="event-detail-value">${isJapanese ? '開場' : 'Open'} ${ev.openTime || ev.time_open} / ${isJapanese ? '開演' : 'Start'} ${ev.startTime || ev.time_start}</span>
               </div>
             ` : ''}
             <div class="event-detail-row">
               <span class="event-detail-label">${isJapanese ? '会場' : 'Venue'}</span>
               <span class="event-detail-value">
-                ${ev.venue}${ev.address ? `<br>${ev.address}` : ''}
-                ${ev.venueUrl ? `<br><a href="${ev.venueUrl}" target="_blank">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
+                ${venueName}${ev.address ? `<br>${ev.address}` : ''}
+                ${ev.venueUrl || ev.venue_url ? `<br><a href="${ev.venueUrl || ev.venue_url}" target="_blank">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
               </span>
             </div>
-            ${ev.price ? `
+            ${priceText ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '料金' : 'Price'}</span>
-                <span class="event-detail-value">${ev.price}</span>
+                <span class="event-detail-value">${priceText}</span>
               </div>
             ` : ''}
+            ${seatsText ? `
+              <div class="event-detail-row">
+                <span class="event-detail-label">${isJapanese ? '席数' : 'Seats'}</span>
+                <span class="event-detail-value" style="color: ${remainingSeats <= 5 ? 'var(--color-hi)' : 'inherit'}; font-weight: ${remainingSeats <= 5 ? '700' : 'normal'};">${seatsText}</span>
+              </div>
+            ` : ''}
+            ${ev.performer ? `
             <div class="event-detail-row">
               <span class="event-detail-label">${isJapanese ? '出演' : 'Performer'}</span>
               <span class="event-detail-value">${ev.performer}</span>
             </div>
+            ` : ''}
             ${ev.program ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '演目' : 'Program'}</span>
                 <span class="event-detail-value">${ev.program.replace(/\n/g, '<br>')}</span>
               </div>
             ` : ''}
-            ${ev.mapUrl ? `
+            ${ev.mapUrl || ev.map_url ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '地図' : 'Map'}</span>
-                <span class="event-detail-value"><a href="${ev.mapUrl}" target="_blank">${isJapanese ? 'Google Map で見る' : 'View on Google Maps'}</a></span>
+                <span class="event-detail-value"><a href="${ev.mapUrl || ev.map_url}" target="_blank">${isJapanese ? 'Google Map で見る' : 'View on Google Maps'}</a></span>
               </div>
             ` : ''}
             ${ev.special ? `
@@ -3092,12 +3053,12 @@
             ` : ''}
           </div>
           <div class="event-card-footer">
-            <button class="btn btn-primary btn-apply" onclick='openApplyModal(${JSON.stringify(ev)})'>
-              <span class="ja-only">申し込む</span>
-              <span class="en-only">Apply</span>
+            <button class="btn btn-primary btn-apply" onclick='openApplyModal(${JSON.stringify(ev).replace(/'/g, "&#39;")})' ${remainingSeats <= 0 && capacity > 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+              <span class="ja-only">${remainingSeats <= 0 && capacity > 0 ? '満席' : '申し込む'}</span>
+              <span class="en-only">${remainingSeats <= 0 && capacity > 0 ? 'Full' : 'Apply'}</span>
             </button>
-            ${ev.mapUrl ? `
-              <a href="${ev.mapUrl}" target="_blank" class="btn btn-outline">
+            ${ev.mapUrl || ev.map_url ? `
+              <a href="${ev.mapUrl || ev.map_url}" target="_blank" class="btn btn-outline">
                 <span class="ja-only">地図</span>
                 <span class="en-only">Map</span>
               </a>
@@ -3108,29 +3069,85 @@
     }).join('');
   }
 
-  // Application Modal
+  // ============ Event Application Modal (New 3-Step System) ============
   let currentEvent = null;
 
   function openApplyModal(event) {
     currentEvent = event;
     const isJapanese = document.body.classList.contains('lang-ja');
 
-    document.getElementById('applyEventId').value = event.id;
+    // Store event data
+    document.getElementById('applyEventId').value = event.event_id || event.id;
+
+    // Set price data
+    const priceGeneral = parseInt(event.price_general) || 0;
+    const priceMember = parseInt(event.price_member) || priceGeneral;
+    document.getElementById('applyPriceGeneral').value = priceGeneral;
+    document.getElementById('applyPriceMember').value = priceMember;
+
+    // Display event info
     document.getElementById('applyEventTitle').textContent = event.title;
 
     const dateObj = new Date(event.date);
     const dateStr = isJapanese
-      ? `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${event.startTime || ''}`
-      : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' ' + (event.startTime || '');
-    document.getElementById('applyEventInfo').textContent = `${dateStr} @ ${event.venue}`;
+      ? `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${event.startTime || event.time_start || ''}`
+      : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' ' + (event.startTime || event.time_start || '');
 
-    // Reset form
-    document.getElementById('methodSelector').style.display = 'block';
-    document.querySelectorAll('.apply-form-fields').forEach(f => f.classList.remove('active'));
-    document.querySelectorAll('input[name="applyMethod"]').forEach(r => r.checked = false);
+    const venueName = event.venue_name || event.venue || '';
+    document.getElementById('applyEventInfo').textContent = `${dateStr} @ ${venueName}`;
 
+    // Price display
+    let priceDisplay = '';
+    if (priceGeneral > 0) {
+      priceDisplay = isJapanese
+        ? `一般 ¥${priceGeneral.toLocaleString()}`
+        : `General ¥${priceGeneral.toLocaleString()}`;
+      if (priceMember > 0 && priceMember < priceGeneral) {
+        priceDisplay += isJapanese
+          ? ` / 会員 ¥${priceMember.toLocaleString()}`
+          : ` / Member ¥${priceMember.toLocaleString()}`;
+      }
+    }
+    document.getElementById('applyEventPrice').textContent = priceDisplay;
+
+    // Remaining seats
+    const capacity = parseInt(event.capacity) || 0;
+    const reservedCount = parseInt(event.reserved_count) || 0;
+    const remainingSeats = capacity - reservedCount;
+    const seatsText = capacity > 0
+      ? (isJapanese ? `残席: ${remainingSeats} 席` : `Remaining: ${remainingSeats} seats`)
+      : '';
+    document.getElementById('applyEventSeats').innerHTML = seatsText
+      ? `<span style="color: ${remainingSeats <= 5 ? 'var(--color-hi)' : 'inherit'}; font-weight: ${remainingSeats <= 5 ? '700' : 'normal'};">${seatsText}</span>`
+      : '';
+
+    // Reset form fields
+    document.getElementById('applyName').value = '';
+    document.getElementById('applyNameKana').value = '';
+    document.getElementById('applyEmail').value = '';
+    document.getElementById('applyPhone').value = '';
+    document.getElementById('applyPartySize').value = '1';
+    document.getElementById('applyMemberId').value = '';
+    document.getElementById('applyWantsToRegister').checked = false;
+    document.getElementById('applyNotes').value = '';
+
+    // Clear messages
+    document.getElementById('applyFormMessage').className = 'form-message';
+    document.getElementById('applyFormMessage').style.display = 'none';
+    document.getElementById('confirmFormMessage').className = 'form-message';
+    document.getElementById('confirmFormMessage').style.display = 'none';
+
+    // Show Step 1, hide others
+    document.getElementById('applyStep1').style.display = 'block';
+    document.getElementById('applyStep2').style.display = 'none';
+    document.getElementById('applyStep3').style.display = 'none';
+
+    // Show modal
     document.getElementById('applyModal').classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // Update price display
+    updatePriceDisplay();
   }
 
   function closeApplyModal() {
@@ -3139,171 +3156,165 @@
     currentEvent = null;
   }
 
-  // Method selection
-  document.querySelectorAll('input[name="applyMethod"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      const method = this.value;
+  function updatePriceDisplay() {
+    const priceGeneral = parseInt(document.getElementById('applyPriceGeneral').value) || 0;
+    const priceMember = parseInt(document.getElementById('applyPriceMember').value) || priceGeneral;
+    const partySize = parseInt(document.getElementById('applyPartySize').value) || 1;
+    const memberId = document.getElementById('applyMemberId').value.trim();
+    const isJapanese = document.body.classList.contains('lang-ja');
 
-      document.querySelectorAll('.apply-form-fields').forEach(f => f.classList.remove('active'));
+    // Use member price if member ID is provided
+    const unitPrice = memberId ? priceMember : priceGeneral;
+    const totalPrice = unitPrice * partySize;
 
-      if (method === 'line') {
-        // Redirect to LINE
-        window.open('https://lin.ee/zMR1NuAF', '_blank');
-        closeApplyModal();
-      } else if (method === 'member') {
-        document.getElementById('formMember').classList.add('active');
-      } else if (method === 'newMember') {
-        document.getElementById('formNewMember').classList.add('active');
-      } else if (method === 'guest') {
-        document.getElementById('formGuest').classList.add('active');
+    let priceDisplay = '';
+    if (priceGeneral > 0) {
+      if (memberId && priceMember < priceGeneral) {
+        priceDisplay = isJapanese
+          ? `会員価格: ¥${unitPrice.toLocaleString()} × ${partySize}名 = ¥${totalPrice.toLocaleString()}`
+          : `Member Price: ¥${unitPrice.toLocaleString()} × ${partySize} = ¥${totalPrice.toLocaleString()}`;
+      } else {
+        priceDisplay = isJapanese
+          ? `一般価格: ¥${unitPrice.toLocaleString()} × ${partySize}名 = ¥${totalPrice.toLocaleString()}`
+          : `General Price: ¥${unitPrice.toLocaleString()} × ${partySize} = ¥${totalPrice.toLocaleString()}`;
       }
-    });
-  });
-
-  // Submit member application
-  async function submitMemberApplication() {
-    const isJapanese = document.body.classList.contains('lang-ja');
-    const memberNumber = document.getElementById('memberNumber').value.trim();
-    const email = document.getElementById('memberEmail').value.trim();
-    const attendees = document.getElementById('memberAttendees').value;
-    const notes = document.getElementById('memberNotes').value.trim();
-
-    if (!memberNumber || !email) {
-      showMessage('memberFormMessage', 'error',
-        isJapanese ? '会員番号とメールアドレスを入力してください' : 'Please enter member number and email');
-      return;
     }
-
-    try {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'applyEvent',
-          eventId: currentEvent.id,
-          eventTitle: currentEvent.title,
-          eventDate: currentEvent.date,
-          eventVenue: currentEvent.venue,
-          applyMethod: 'member',
-          memberNumber: memberNumber,
-          email: email,
-          attendees: attendees,
-          notes: notes,
-          language: isJapanese ? 'ja' : 'en'
-        })
-      });
-
-      document.getElementById('methodSelector').style.display = 'none';
-      document.getElementById('formMember').classList.remove('active');
-      document.getElementById('formComplete').classList.add('active');
-
-    } catch (error) {
-      showMessage('memberFormMessage', 'error',
-        isJapanese ? 'エラーが発生しました' : 'An error occurred');
-    }
+    document.getElementById('applyEventPrice').textContent = priceDisplay;
   }
 
-  // Submit guest application
-  async function submitGuestApplication() {
-    const isJapanese = document.body.classList.contains('lang-ja');
-    const name = document.getElementById('guestName').value.trim();
-    const email = document.getElementById('guestEmail').value.trim();
-    const phone = document.getElementById('guestPhone').value.trim();
-    const attendees = document.getElementById('guestAttendees').value;
-    const notes = document.getElementById('guestNotes').value.trim();
+  // Add event listener for member ID input
+  document.getElementById('applyMemberId').addEventListener('input', updatePriceDisplay);
 
-    if (!name || !email) {
-      showMessage('guestFormMessage', 'error',
-        isJapanese ? 'お名前とメールアドレスを入力してください' : 'Please enter name and email');
-      return;
-    }
-
-    try {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'applyEvent',
-          eventId: currentEvent.id,
-          eventTitle: currentEvent.title,
-          eventDate: currentEvent.date,
-          eventVenue: currentEvent.venue,
-          applyMethod: 'guest',
-          name: name,
-          email: email,
-          phone: phone,
-          attendees: attendees,
-          notes: notes,
-          language: isJapanese ? 'ja' : 'en'
-        })
-      });
-
-      document.getElementById('methodSelector').style.display = 'none';
-      document.getElementById('formGuest').classList.remove('active');
-      document.getElementById('formComplete').classList.add('active');
-
-    } catch (error) {
-      showMessage('guestFormMessage', 'error',
-        isJapanese ? 'エラーが発生しました' : 'An error occurred');
-    }
+  function showFormStep() {
+    document.getElementById('applyStep1').style.display = 'block';
+    document.getElementById('applyStep2').style.display = 'none';
+    document.getElementById('applyStep3').style.display = 'none';
   }
 
-  // Submit new member application (register as supporter + apply for event)
-  async function submitNewMemberApplication() {
+  function showConfirmStep() {
     const isJapanese = document.body.classList.contains('lang-ja');
-    const name = document.getElementById('newMemberName').value.trim();
-    const email = document.getElementById('newMemberEmail').value.trim();
-    const phone = document.getElementById('newMemberPhone').value.trim();
-    const supportType = document.getElementById('newMemberSupportType').value;
-    const attendees = document.getElementById('newMemberAttendees').value;
-    const notes = document.getElementById('newMemberNotes').value.trim();
-    const privacy = document.getElementById('newMemberPrivacy').checked;
 
-    if (!name || !email) {
-      showMessage('newMemberFormMessage', 'error',
-        isJapanese ? 'お名前とメールアドレスを入力してください' : 'Please enter name and email');
+    // Get form values
+    const name = document.getElementById('applyName').value.trim();
+    const nameKana = document.getElementById('applyNameKana').value.trim();
+    const email = document.getElementById('applyEmail').value.trim();
+    const phone = document.getElementById('applyPhone').value.trim();
+    const partySize = document.getElementById('applyPartySize').value;
+    const memberId = document.getElementById('applyMemberId').value.trim();
+    const wantsToRegister = document.getElementById('applyWantsToRegister').checked;
+    const notes = document.getElementById('applyNotes').value.trim();
+
+    // Validation
+    if (!name) {
+      showMessage('applyFormMessage', 'error',
+        isJapanese ? 'お名前を入力してください' : 'Please enter your name');
+      return;
+    }
+    if (!email || !isValidEmail(email)) {
+      showMessage('applyFormMessage', 'error',
+        isJapanese ? '有効なメールアドレスを入力してください' : 'Please enter a valid email address');
+      return;
+    }
+    if (!phone) {
+      showMessage('applyFormMessage', 'error',
+        isJapanese ? '電話番号を入力してください' : 'Please enter your phone number');
       return;
     }
 
-    if (!privacy) {
-      showMessage('newMemberFormMessage', 'error',
-        isJapanese ? '個人情報の取り扱いに同意してください' : 'Please agree to the privacy policy');
-      return;
-    }
+    // Calculate price
+    const priceGeneral = parseInt(document.getElementById('applyPriceGeneral').value) || 0;
+    const priceMember = parseInt(document.getElementById('applyPriceMember').value) || priceGeneral;
+    const unitPrice = memberId ? priceMember : priceGeneral;
+    const totalPrice = unitPrice * parseInt(partySize);
+
+    // Build confirmation HTML
+    const confirmDateObj = new Date(currentEvent.date);
+    const confirmDateStr = isJapanese
+      ? `${confirmDateObj.getFullYear()}年${confirmDateObj.getMonth() + 1}月${confirmDateObj.getDate()}日`
+      : confirmDateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    let confirmHtml = `
+      <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(26,40,64,0.1);">
+        <strong style="color: var(--color-hi);">${currentEvent.title}</strong><br>
+        <span style="font-size: 14px; color: var(--color-sumi-light);">${confirmDateStr} ${currentEvent.startTime || currentEvent.time_start || ''}</span>
+      </div>
+      <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+        <tr><td style="padding: 8px 0; color: var(--color-sumi-light); width: 100px;">${isJapanese ? '氏名' : 'Name'}</td><td>${name}</td></tr>
+        ${nameKana ? `<tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? 'フリガナ' : 'Kana'}</td><td>${nameKana}</td></tr>` : ''}
+        <tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? 'メール' : 'Email'}</td><td>${email}</td></tr>
+        <tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? '電話番号' : 'Phone'}</td><td>${phone}</td></tr>
+        <tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? '人数' : 'Party'}</td><td>${partySize}${isJapanese ? '名' : ''}</td></tr>
+        ${memberId ? `<tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? '会員番号' : 'Member ID'}</td><td>${memberId}</td></tr>` : ''}
+        ${priceGeneral > 0 ? `<tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? '料金' : 'Price'}</td><td style="font-weight: 700; color: var(--color-hi);">¥${totalPrice.toLocaleString()}</td></tr>` : ''}
+        ${notes ? `<tr><td style="padding: 8px 0; color: var(--color-sumi-light);">${isJapanese ? '備考' : 'Notes'}</td><td>${notes}</td></tr>` : ''}
+      </table>
+      ${wantsToRegister ? `
+        <div style="margin-top: 16px; padding: 12px; background: rgba(139,10,26,0.05); border-left: 3px solid var(--color-hi); font-size: 13px;">
+          ${isJapanese ? 'この申し込みと同時にサポーター登録を行います' : 'You will also be registered as a supporter'}
+        </div>
+      ` : ''}
+    `;
+
+    document.getElementById('confirmDetails').innerHTML = confirmHtml;
+
+    // Show Step 2
+    document.getElementById('applyStep1').style.display = 'none';
+    document.getElementById('applyStep2').style.display = 'block';
+    document.getElementById('applyStep3').style.display = 'none';
+  }
+
+  async function submitReservation() {
+    const isJapanese = document.body.classList.contains('lang-ja');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Get form values
+    const name = document.getElementById('applyName').value.trim();
+    const nameKana = document.getElementById('applyNameKana').value.trim();
+    const email = document.getElementById('applyEmail').value.trim();
+    const phone = document.getElementById('applyPhone').value.trim();
+    const partySize = parseInt(document.getElementById('applyPartySize').value) || 1;
+    const memberId = document.getElementById('applyMemberId').value.trim();
+    const wantsToRegister = document.getElementById('applyWantsToRegister').checked;
+    const notes = document.getElementById('applyNotes').value.trim();
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = isJapanese ? '送信中...' : 'Submitting...';
 
     try {
-      // Step 1: Register as supporter (sends verification email)
       await fetch(GAS_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'registerAndApply',
-          // Supporter info
-          email: email,
+          action: 'submitReservation',
+          eventId: currentEvent.event_id || currentEvent.id,
           name: name,
+          nameKana: nameKana,
+          email: email,
           phone: phone,
-          supportType: supportType,
-          // Event info
-          eventId: currentEvent.id,
-          eventTitle: currentEvent.title,
-          eventDate: currentEvent.date,
-          eventVenue: currentEvent.venue,
-          attendees: attendees,
+          partySize: partySize,
+          memberId: memberId,
+          wantsToRegister: wantsToRegister,
           notes: notes,
           language: isJapanese ? 'ja' : 'en'
         })
       });
 
-      document.getElementById('methodSelector').style.display = 'none';
-      document.getElementById('formNewMember').classList.remove('active');
-      document.getElementById('formCompleteNewMember').classList.add('active');
+      // Show Step 3 (email sent)
+      document.getElementById('applyStep1').style.display = 'none';
+      document.getElementById('applyStep2').style.display = 'none';
+      document.getElementById('applyStep3').style.display = 'block';
 
     } catch (error) {
-      showMessage('newMemberFormMessage', 'error',
-        isJapanese ? 'エラーが発生しました' : 'An error occurred');
+      console.error('Error:', error);
+      showMessage('confirmFormMessage', 'error',
+        isJapanese ? 'エラーが発生しました。再度お試しください。' : 'An error occurred. Please try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = isJapanese
+        ? '<span class="ja-only">この内容で申し込む</span><span class="en-only">Submit Application</span>'
+        : '<span class="ja-only">この内容で申し込む</span><span class="en-only">Submit Application</span>';
     }
   }
 

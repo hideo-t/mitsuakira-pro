@@ -35,9 +35,19 @@ function doPost(e) {
         result = submitReservation(data);
         break;
 
-      // サポーター登録
+      // サポーター登録（新規）
       case 'submitMemberRegistration':
         result = submitMemberRegistration(data);
+        break;
+
+      // サポーター登録 Step1: メール認証送信
+      case 'sendVerification':
+        result = sendVerificationEmail(data);
+        break;
+
+      // サポーター登録 Step3: 詳細情報登録完了
+      case 'completeRegistration':
+        result = completeRegistration(data);
         break;
 
       // 管理者ログイン
@@ -551,6 +561,165 @@ function confirmMemberByEmail(email) {
   }
 }
 
+// ===== サポーター登録 Step1: 認証メール送信 =====
+function sendVerificationEmail(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 仮会員シートを取得または作成
+  let memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!memSheet) {
+    memSheet = ss.insertSheet(SHEET_MEMBERS);
+    memSheet.appendRow([
+      'member_id', 'name', 'name_kana', 'email', 'email_verified', 'phone',
+      'line_id', 'line_name', 'region', 'referral', 'plan', 'status',
+      'event_count', 'last_event_at', 'registered_at', 'verified_at',
+      'verification_token', 'token_expires_at', 'notes'
+    ]);
+    memSheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    memSheet.setFrozenRows(1);
+  }
+
+  const now = new Date();
+  const token = generateToken();
+  const tokenExpiry = new Date(now.getTime() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+
+  // 既存メールアドレスチェック
+  const existingData = memSheet.getDataRange().getValues();
+  for (let i = 1; i < existingData.length; i++) {
+    if (existingData[i][3] === data.email) {
+      const status = existingData[i][11];
+      if (status === 'active') {
+        return { success: false, message: 'このメールアドレスは既に登録されています。' };
+      }
+      if (status === 'pending') {
+        // トークンを更新して再送信
+        const row = i + 1;
+        memSheet.getRange(row, 17).setValue(token);
+        memSheet.getRange(row, 18).setValue(tokenExpiry);
+
+        // 確認メール（詳細登録ページへのリンク）を送信
+        sendStep2VerificationEmail({
+          email: data.email,
+          token: token,
+          language: data.language || 'ja'
+        });
+
+        return { success: true, message: 'Verification email resent' };
+      }
+    }
+  }
+
+  // 新規仮登録（メールアドレスのみ）
+  const memberId = generateMemberId(memSheet);
+  memSheet.appendRow([
+    memberId,
+    '', // name - 後で入力
+    '', // name_kana
+    data.email,
+    false, // email_verified
+    '', // phone
+    '', '', '', '',
+    'free',
+    'pending',
+    0, '',
+    now, '',
+    token,
+    tokenExpiry,
+    'Step1: メール認証待ち'
+  ]);
+
+  // 確認メールを送信
+  sendStep2VerificationEmail({
+    email: data.email,
+    token: token,
+    language: data.language || 'ja'
+  });
+
+  return { success: true, message: 'Verification email sent' };
+}
+
+// ===== Step2確認メール送信 =====
+function sendStep2VerificationEmail(info) {
+  const verifyUrl = `${SITE_URL}?verified=true&token=${info.token}&email=${encodeURIComponent(info.email)}#supporter`;
+
+  const subject = '【三晶プロダクション】メール認証のお願い';
+
+  const body = `
+三晶プロダクション サポーター登録
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ メール認証
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+以下のリンクをクリックして、登録を続けてください。
+（24時間以内にクリックしないと無効になります）
+
+▼ 登録を続ける
+${verifyUrl}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+※このメールに心当たりがない場合は、このメールを破棄してください。
+
+─────────────────────────
+三晶プロダクション
+${SITE_URL}
+─────────────────────────
+`;
+
+  GmailApp.sendEmail(info.email, subject, body);
+}
+
+// ===== サポーター登録 Step3: 詳細情報登録完了 =====
+function completeRegistration(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const memSheet = ss.getSheetByName(SHEET_MEMBERS);
+
+  if (!memSheet) {
+    return { success: false, message: 'Member sheet not found' };
+  }
+
+  const sheetData = memSheet.getDataRange().getValues();
+  const now = new Date();
+
+  for (let i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][3] === data.email && sheetData[i][16] === data.token) {
+      const tokenExpiry = new Date(sheetData[i][17]);
+      const status = sheetData[i][11];
+      const memberId = sheetData[i][0];
+
+      if (status === 'active') {
+        return { success: false, message: 'Already registered' };
+      }
+
+      if (now > tokenExpiry) {
+        return { success: false, message: 'Token expired' };
+      }
+
+      // 詳細情報を更新して登録完了
+      const row = i + 1;
+      memSheet.getRange(row, 2).setValue(data.name); // name
+      memSheet.getRange(row, 5).setValue(true); // email_verified
+      memSheet.getRange(row, 6).setValue(data.phone || ''); // phone
+      memSheet.getRange(row, 11).setValue(data.supportType || 'free'); // plan
+      memSheet.getRange(row, 12).setValue('active'); // status
+      memSheet.getRange(row, 16).setValue(now); // verified_at
+      memSheet.getRange(row, 19).setValue(data.message || ''); // notes
+
+      // 登録完了メールを送信
+      sendMemberWelcomeEmail({
+        memberId: memberId,
+        name: data.name,
+        email: data.email
+      });
+
+      return { success: true, memberId: memberId, message: 'Registration complete' };
+    }
+  }
+
+  return { success: false, message: 'Invalid token or email' };
+}
+
 // ===== イベント関連 =====
 function getEventById(eventId) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -768,6 +937,28 @@ function saveEvent(data) {
     ]);
     return { success: true, eventId: eventId };
   }
+}
+
+function deleteEvent(data) {
+  if (!verifyAdmin(data.adminEmail, data.adminPassword)) {
+    return { success: false, message: 'Unauthorized' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) {
+    return { success: false, message: 'Events sheet not found' };
+  }
+
+  const sheetData = sheet.getDataRange().getValues();
+  for (let i = 1; i < sheetData.length; i++) {
+    if (sheetData[i][0] === data.eventId) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Event deleted' };
+    }
+  }
+
+  return { success: false, message: 'Event not found' };
 }
 
 // ===== 会員ID検証 =====
