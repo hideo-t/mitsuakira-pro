@@ -210,6 +210,8 @@ function doGet(e) {
 
 // ===== イベント申し込み処理 =====
 function submitReservation(data) {
+  console.log('submitReservation called with:', JSON.stringify(data));
+
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // 予約シートを取得または作成
@@ -225,11 +227,15 @@ function submitReservation(data) {
     resSheet.getRange(1, 1, 1, 21).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     resSheet.setFrozenRows(1);
   }
+  console.log('resSheet ready');
 
   // イベント情報を取得
+  console.log('Getting event info for:', data.eventId);
   const eventInfo = getEventById(data.eventId);
+  console.log('eventInfo:', JSON.stringify(eventInfo));
   if (!eventInfo) {
-    return { success: false, message: 'Event not found' };
+    console.log('Event not found');
+    return { success: false, message: 'Event not found: ' + data.eventId };
   }
 
   // 残席チェック
