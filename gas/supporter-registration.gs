@@ -558,16 +558,23 @@ function confirmMemberByEmail(email) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][3] === email && data[i][11] === 'pending') {
       const row = i + 1;
+      const memberId = data[i][0];
+      const memberName = data[i][1] || '会員';
+
       memSheet.getRange(row, 5).setValue(true); // email_verified
       memSheet.getRange(row, 12).setValue('active'); // status
       memSheet.getRange(row, 16).setValue(now); // verified_at
 
       // 会員登録完了メールを送信
-      sendMemberWelcomeEmail({
-        memberId: data[i][0],
-        name: data[i][1],
-        email: email
-      });
+      try {
+        sendMemberWelcomeEmail({
+          memberId: memberId,
+          name: memberName,
+          email: email
+        });
+      } catch (e) {
+        console.error('confirmMemberByEmail sendMemberWelcomeEmail error:', e);
+      }
       break;
     }
   }
@@ -719,11 +726,15 @@ function completeRegistration(data) {
       memSheet.getRange(row, 19).setValue(data.message || ''); // notes
 
       // 登録完了メールを送信
-      sendMemberWelcomeEmail({
-        memberId: memberId,
-        name: data.name,
-        email: data.email
-      });
+      try {
+        sendMemberWelcomeEmail({
+          memberId: memberId,
+          name: data.name || '会員',
+          email: data.email
+        });
+      } catch (e) {
+        console.error('completeRegistration sendMemberWelcomeEmail error:', e);
+      }
 
       return { success: true, memberId: memberId, message: 'Registration complete' };
     }
@@ -1082,6 +1093,11 @@ function verifyAdmin(email, password) {
 
 // ===== メール送信 =====
 function sendReservationConfirmationEmail(info) {
+  if (!info || !info.email || !info.token) {
+    console.error('sendReservationConfirmationEmail: invalid info', JSON.stringify(info));
+    throw new Error('Invalid email info');
+  }
+
   const gasUrl = ScriptApp.getService().getUrl();
   const confirmUrl = `${gasUrl}?action=confirmReservation&token=${info.token}`;
 
@@ -1204,6 +1220,11 @@ ${SITE_URL}
 }
 
 function sendMemberWelcomeEmail(info) {
+  if (!info || !info.email || !info.memberId) {
+    console.error('sendMemberWelcomeEmail: invalid info', JSON.stringify(info));
+    throw new Error('Invalid member info');
+  }
+
   const subject = `【三晶プロダクション】サポーター登録完了 - 会員番号: ${info.memberId}`;
 
   const body = `
