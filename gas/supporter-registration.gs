@@ -17,6 +17,8 @@
 const SPREADSHEET_ID = '1g4YHWYDamiUDf1ko4vyQ_l2-VOWfGgj3Wm1COes52l4';
 const SITE_URL = 'https://hideo-t.github.io/mitsuakira-pro';
 const SHEET_NAME = 'サポーター登録';
+const ADMIN_SHEET_NAME = '管理者マスタ';
+const EVENT_SHEET_NAME = 'イベント';
 const NOTIFICATION_EMAIL = ''; // 管理者通知メール（任意）
 
 // トークンの有効期限（24時間）
@@ -41,6 +43,16 @@ function doPost(e) {
         result = completeRegistration(data);
         break;
 
+      case 'adminLogin':
+        // 管理者ログイン
+        result = adminLogin(data.email, data.password);
+        break;
+
+      case 'saveEvent':
+        // イベント保存
+        result = saveEvent(data);
+        break;
+
       default:
         throw new Error('Invalid action');
     }
@@ -57,12 +69,49 @@ function doPost(e) {
 }
 
 /**
- * GETリクエストを処理（メール認証リンク）
+ * GETリクエストを処理（メール認証リンク、イベント取得など）
  */
 function doGet(e) {
   const token = e.parameter.token;
   const action = e.parameter.action;
+  const email = e.parameter.email;
+  const password = e.parameter.password;
 
+  // イベント一覧取得
+  if (action === 'getEvents') {
+    if (!verifyAdmin(email, password)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const events = getEvents();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, events: events }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // サポーター一覧取得
+  if (action === 'getSupporters') {
+    if (!verifyAdmin(email, password)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const supporters = getSupporters();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, supporters: supporters }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 公開イベント一覧取得（認証不要）
+  if (action === 'getPublicEvents') {
+    const events = getPublicEvents();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, events: events }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // メール認証
   if (action === 'verify' && token) {
     // Step 2: メール認証を処理
     const result = verifyEmail(token);
@@ -107,7 +156,7 @@ function doGet(e) {
   }
 
   return ContentService
-    .createTextOutput(JSON.stringify({ status: 'ok', message: 'Supporter Registration API' }))
+    .createTextOutput(JSON.stringify({ status: 'ok', message: 'Mitsuakira Pro API' }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -523,4 +572,261 @@ function isValidEmail(email) {
 function testSendVerification() {
   const result = sendVerificationEmail('test@example.com', 'ja');
   Logger.log(result);
+}
+
+// ============================================
+// 管理者認証
+// ============================================
+
+/**
+ * 管理者ログイン
+ */
+function adminLogin(email, password) {
+  if (!email || !password) {
+    return { success: false, message: 'Email and password required' };
+  }
+
+  if (verifyAdmin(email, password)) {
+    return { success: true, message: 'Login successful' };
+  }
+
+  return { success: false, message: 'Invalid credentials' };
+}
+
+/**
+ * 管理者認証を確認
+ */
+function verifyAdmin(email, password) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(ADMIN_SHEET_NAME);
+
+  // 管理者シートがない場合は作成
+  if (!sheet) {
+    sheet = ss.insertSheet(ADMIN_SHEET_NAME);
+    sheet.appendRow(['メールアドレス', 'パスワード', '名前', '権限', '作成日']);
+    sheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+    // デフォルト管理者を追加（初回のみ）
+    sheet.appendRow(['admin@mitsuakira.com', 'admin123', '管理者', 'admin', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd')]);
+    return false;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === email && data[i][1] === password) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ============================================
+// イベント管理
+// ============================================
+
+/**
+ * イベントを保存
+ */
+function saveEvent(data) {
+  // 管理者認証
+  if (!verifyAdmin(data.adminEmail, data.adminPassword)) {
+    return { success: false, message: 'Unauthorized' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(EVENT_SHEET_NAME);
+
+  // イベントシートがない場合は作成
+  if (!sheet) {
+    sheet = ss.insertSheet(EVENT_SHEET_NAME);
+    sheet.appendRow([
+      'イベントID', '作成日', 'ステータス', 'イベント名', '開催日', '開場', '開演',
+      '会場名', '住所', '会場URL', '地図URL', '料金', '定員',
+      '出演者', '演目', '連絡先', '特典・備考', '更新日'
+    ]);
+    sheet.getRange(1, 1, 1, 18).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+
+  const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+
+  if (data.eventId) {
+    // 既存イベントを更新
+    const sheetData = sheet.getDataRange().getValues();
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0] === data.eventId) {
+        const row = i + 1;
+        sheet.getRange(row, 3).setValue(data.status || 'draft');
+        sheet.getRange(row, 4).setValue(data.title);
+        sheet.getRange(row, 5).setValue(data.date);
+        sheet.getRange(row, 6).setValue(data.openTime);
+        sheet.getRange(row, 7).setValue(data.startTime);
+        sheet.getRange(row, 8).setValue(data.venue);
+        sheet.getRange(row, 9).setValue(data.address);
+        sheet.getRange(row, 10).setValue(data.venueUrl);
+        sheet.getRange(row, 11).setValue(data.mapUrl);
+        sheet.getRange(row, 12).setValue(data.price);
+        sheet.getRange(row, 13).setValue(data.capacity);
+        sheet.getRange(row, 14).setValue(data.performer);
+        sheet.getRange(row, 15).setValue(data.program);
+        sheet.getRange(row, 16).setValue(data.contact);
+        sheet.getRange(row, 17).setValue(data.special);
+        sheet.getRange(row, 18).setValue(now);
+        return { success: true, message: 'Event updated', eventId: data.eventId };
+      }
+    }
+    return { success: false, message: 'Event not found' };
+  } else {
+    // 新規イベントを作成
+    const eventId = generateEventId(sheet);
+    sheet.appendRow([
+      eventId,
+      now,
+      data.status || 'draft',
+      data.title,
+      data.date,
+      data.openTime,
+      data.startTime,
+      data.venue,
+      data.address,
+      data.venueUrl,
+      data.mapUrl,
+      data.price,
+      data.capacity,
+      data.performer,
+      data.program,
+      data.contact,
+      data.special,
+      now
+    ]);
+    return { success: true, message: 'Event created', eventId: eventId };
+  }
+}
+
+/**
+ * イベントIDを生成
+ */
+function generateEventId(sheet) {
+  const data = sheet.getDataRange().getValues();
+  let maxNumber = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const eventId = data[i][0];
+    if (eventId && typeof eventId === 'string' && eventId.startsWith('EV-')) {
+      const num = parseInt(eventId.substring(3), 10);
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+
+  const nextNumber = maxNumber + 1;
+  return 'EV-' + String(nextNumber).padStart(4, '0');
+}
+
+/**
+ * 全イベントを取得（管理者用）
+ */
+function getEvents() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(EVENT_SHEET_NAME);
+
+  if (!sheet) {
+    return [];
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const events = [];
+
+  for (let i = 1; i < data.length; i++) {
+    events.push({
+      id: data[i][0],
+      createdAt: data[i][1],
+      status: data[i][2],
+      title: data[i][3],
+      date: data[i][4],
+      openTime: data[i][5],
+      startTime: data[i][6],
+      venue: data[i][7],
+      address: data[i][8],
+      venueUrl: data[i][9],
+      mapUrl: data[i][10],
+      price: data[i][11],
+      capacity: data[i][12],
+      performer: data[i][13],
+      program: data[i][14],
+      contact: data[i][15],
+      special: data[i][16],
+      updatedAt: data[i][17]
+    });
+  }
+
+  // 開催日の降順でソート
+  events.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  return events;
+}
+
+/**
+ * 公開イベントを取得（一般用）
+ */
+function getPublicEvents() {
+  const events = getEvents();
+  return events.filter(ev => ev.status === 'published');
+}
+
+/**
+ * サポーター一覧を取得（管理者用）
+ */
+function getSupporters() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_NAME);
+
+  if (!sheet) {
+    return [];
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const supporters = [];
+
+  for (let i = 1; i < data.length; i++) {
+    supporters.push({
+      registrationId: data[i][0],
+      memberNumber: data[i][1],
+      registeredAt: data[i][2],
+      status: data[i][3],
+      email: data[i][4],
+      supportType: data[i][7],
+      name: data[i][8],
+      phone: data[i][9],
+      interest: data[i][10],
+      message: data[i][11]
+    });
+  }
+
+  return supporters;
+}
+
+/**
+ * 管理者シートを初期化（テスト用）
+ */
+function initAdminSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(ADMIN_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(ADMIN_SHEET_NAME);
+  } else {
+    sheet.clear();
+  }
+
+  sheet.appendRow(['メールアドレス', 'パスワード', '名前', '権限', '作成日']);
+  sheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+  sheet.setFrozenRows(1);
+
+  // デフォルト管理者
+  sheet.appendRow(['admin@mitsuakira.com', 'admin123', '管理者', 'admin', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd')]);
+
+  Logger.log('Admin sheet initialized');
 }

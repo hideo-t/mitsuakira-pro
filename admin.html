@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理画面 - 三晶プロダクション</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-hi: #8B0A1A;
+    --color-hi-deep: #6B0814;
+    --color-edo: #1A2840;
+    --color-base: #F5F0E8;
+    --color-base-deep: #EDE5D5;
+    --color-gold: #B8860B;
+    --color-moegi: #2A5C3D;
+    --color-sumi: #2C2C2C;
+    --color-sumi-light: #555555;
+    --serif: "Noto Serif JP", serif;
+    --sans: "Noto Sans JP", sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--color-base);
+    color: var(--color-edo);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .admin-header {
+    background: var(--color-edo);
+    color: var(--color-base);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .admin-header h1 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  .admin-header a {
+    color: var(--color-base);
+    text-decoration: none;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .admin-header a:hover { opacity: 1; }
+
+  /* Login Form */
+  .login-container {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 48px;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .login-container h2 {
+    font-family: var(--serif);
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 32px;
+    color: var(--color-edo);
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--color-edo);
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 1px solid rgba(26,40,64,0.2);
+    background: var(--color-base);
+    font-family: var(--sans);
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--color-hi);
+  }
+
+  .form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 14px 32px;
+    font-family: var(--serif);
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--color-hi);
+    color: white;
+    width: 100%;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-hi-deep);
+  }
+
+  .btn-secondary {
+    background: var(--color-edo);
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background: #2A3A55;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--color-edo);
+    color: var(--color-edo);
+  }
+
+  .btn-outline:hover {
+    background: var(--color-edo);
+    color: white;
+  }
+
+  .error-message {
+    background: rgba(139,10,26,0.1);
+    border: 1px solid var(--color-hi);
+    color: var(--color-hi);
+    padding: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    display: none;
+  }
+
+  .success-message {
+    background: rgba(42,92,61,0.1);
+    border: 1px solid var(--color-moegi);
+    color: var(--color-moegi);
+    padding: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    display: none;
+  }
+
+  /* Admin Dashboard */
+  .admin-container {
+    display: none;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  .admin-nav {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid rgba(26,40,64,0.15);
+    padding-bottom: 16px;
+  }
+
+  .admin-nav button {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    font-family: var(--serif);
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--color-sumi-light);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -17px;
+    padding-bottom: 14px;
+  }
+
+  .admin-nav button.active {
+    color: var(--color-hi);
+    border-bottom-color: var(--color-hi);
+  }
+
+  .admin-panel {
+    display: none;
+  }
+
+  .admin-panel.active {
+    display: block;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .panel-header h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+  }
+
+  /* Event Form */
+  .event-form {
+    background: white;
+    padding: 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .form-row.full {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(26,40,64,0.1);
+  }
+
+  /* Event List */
+  .event-list {
+    background: white;
+  }
+
+  .event-item {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(26,40,64,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .event-item:last-child {
+    border-bottom: none;
+  }
+
+  .event-info h4 {
+    font-family: var(--serif);
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .event-info p {
+    font-size: 13px;
+    color: var(--color-sumi-light);
+  }
+
+  .event-id {
+    font-size: 12px;
+    color: var(--color-hi);
+    font-family: monospace;
+  }
+
+  .event-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .event-actions button {
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .no-events {
+    text-align: center;
+    padding: 48px;
+    color: var(--color-sumi-light);
+  }
+
+  /* User info */
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .user-info span {
+    font-size: 14px;
+  }
+
+  .logout-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .logout-btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-container {
+      padding: 16px;
+    }
+
+    .event-form {
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="admin-header">
+  <h1>三晶プロダクション 管理画面</h1>
+  <div class="user-info" id="userInfo" style="display: none;">
+    <span id="userEmail"></span>
+    <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+  <a href="index.html" id="backLink">← サイトに戻る</a>
+</header>
+
+<!-- Login Form -->
+<div class="login-container" id="loginContainer">
+  <h2>管理者ログイン</h2>
+  <div class="error-message" id="loginError"></div>
+  <form onsubmit="return handleLogin(event)">
+    <div class="form-group">
+      <label for="loginEmail">メールアドレス</label>
+      <input type="email" id="loginEmail" required placeholder="admin@example.com">
+    </div>
+    <div class="form-group">
+      <label for="loginPassword">パスワード</label>
+      <input type="password" id="loginPassword" required placeholder="パスワード">
+    </div>
+    <button type="submit" class="btn btn-primary" id="loginBtn">ログイン</button>
+  </form>
+</div>
+
+<!-- Admin Dashboard -->
+<div class="admin-container" id="adminContainer">
+  <nav class="admin-nav">
+    <button class="active" onclick="showPanel('events')">イベント管理</button>
+    <button onclick="showPanel('supporters')">サポーター一覧</button>
+  </nav>
+
+  <!-- Events Panel -->
+  <div class="admin-panel active" id="panelEvents">
+    <div class="panel-header">
+      <h3>イベント管理</h3>
+      <button class="btn btn-secondary" onclick="showEventForm()">+ 新規イベント登録</button>
+    </div>
+
+    <!-- Event Form -->
+    <div class="event-form" id="eventForm" style="display: none;">
+      <div class="success-message" id="eventSuccess"></div>
+      <div class="error-message" id="eventError"></div>
+
+      <input type="hidden" id="editEventId">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventTitle">イベント名 *</label>
+          <input type="text" id="eventTitle" required placeholder="第1回落語【風と曼荼羅】">
+        </div>
+        <div class="form-group">
+          <label for="eventDate">開催日 *</label>
+          <input type="date" id="eventDate" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventOpenTime">開場時間</label>
+          <input type="time" id="eventOpenTime" placeholder="18:00">
+        </div>
+        <div class="form-group">
+          <label for="eventStartTime">開演時間 *</label>
+          <input type="time" id="eventStartTime" required placeholder="19:00">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventVenue">会場名 *</label>
+          <input type="text" id="eventVenue" required placeholder="おでん 髪と台詞">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventAddress">会場住所</label>
+          <input type="text" id="eventAddress" placeholder="福島県白河市天神町６">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventVenueUrl">会場URL</label>
+          <input type="url" id="eventVenueUrl" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label for="eventMapUrl">地図URL</label>
+          <input type="url" id="eventMapUrl" placeholder="https://maps.app.goo.gl/...">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="eventPrice">木戸銭（料金）</label>
+          <input type="text" id="eventPrice" placeholder="5,000円（食事付き／追加注文別料金）">
+        </div>
+        <div class="form-group">
+          <label for="eventCapacity">定員</label>
+          <input type="text" id="eventCapacity" placeholder="30名">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventPerformer">出演者 *</label>
+          <input type="text" id="eventPerformer" required placeholder="三遊亭円左衛門">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventProgram">演目</label>
+          <textarea id="eventProgram" placeholder="「たらちね」「蒟蒻問答」"></textarea>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventContact">お申し込み・お問い合わせ</label>
+          <textarea id="eventContact" placeholder="電話: 0248-XX-XXXX&#10;メール: info@example.com"></textarea>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventSpecial">特典・備考</label>
+          <textarea id="eventSpecial" placeholder="ご来場のお客様にはもれなく、円左衛門変顔缶バッチプレゼント！"></textarea>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="eventStatus">公開状態</label>
+        <select id="eventStatus">
+          <option value="draft">下書き</option>
+          <option value="published">公開</option>
+          <option value="closed">終了</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" onclick="saveEvent()">保存する</button>
+        <button type="button" class="btn btn-outline" onclick="hideEventForm()">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- Event List -->
+    <div class="event-list" id="eventList">
+      <div class="no-events">イベントを読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- Supporters Panel -->
+  <div class="admin-panel" id="panelSupporters">
+    <div class="panel-header">
+      <h3>サポーター一覧</h3>
+    </div>
+    <div class="event-list" id="supporterList">
+      <div class="no-events">サポーター情報を読み込み中...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxzKL2yWm5Q_Fj_Xbj7adaNhFbd6_VPalMW2gDLst_3-U8mfICs52Gju3RbwQHB_ovF3g/exec';
+
+  // Check session on load
+  document.addEventListener('DOMContentLoaded', () => {
+    const session = localStorage.getItem('adminSession');
+    if (session) {
+      const data = JSON.parse(session);
+      if (data.expiry > Date.now()) {
+        showDashboard(data.email);
+        loadEvents();
+        return;
+      }
+      localStorage.removeItem('adminSession');
+    }
+  });
+
+  // Login handler
+  async function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+    const errorEl = document.getElementById('loginError');
+
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'ログイン中...';
+
+    try {
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'adminLogin',
+          email: email,
+          password: password
+        })
+      });
+
+      // Since no-cors, we assume success and verify on next request
+      // Store session
+      localStorage.setItem('adminSession', JSON.stringify({
+        email: email,
+        password: password,
+        expiry: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      }));
+
+      showDashboard(email);
+      loadEvents();
+
+    } catch (error) {
+      errorEl.textContent = 'ログインに失敗しました';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'ログイン';
+    }
+  }
+
+  function showDashboard(email) {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('adminContainer').style.display = 'block';
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('backLink').style.display = 'none';
+    document.getElementById('userEmail').textContent = email;
+  }
+
+  function logout() {
+    localStorage.removeItem('adminSession');
+    location.reload();
+  }
+
+  // Panel navigation
+  function showPanel(panelName) {
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-nav button').forEach(b => b.classList.remove('active'));
+
+    document.getElementById('panel' + panelName.charAt(0).toUpperCase() + panelName.slice(1)).classList.add('active');
+    event.target.classList.add('active');
+
+    if (panelName === 'supporters') {
+      loadSupporters();
+    }
+  }
+
+  // Event form
+  function showEventForm(eventData = null) {
+    document.getElementById('eventForm').style.display = 'block';
+
+    if (eventData) {
+      document.getElementById('editEventId').value = eventData.id;
+      document.getElementById('eventTitle').value = eventData.title || '';
+      document.getElementById('eventDate').value = eventData.date || '';
+      document.getElementById('eventOpenTime').value = eventData.openTime || '';
+      document.getElementById('eventStartTime').value = eventData.startTime || '';
+      document.getElementById('eventVenue').value = eventData.venue || '';
+      document.getElementById('eventAddress').value = eventData.address || '';
+      document.getElementById('eventVenueUrl').value = eventData.venueUrl || '';
+      document.getElementById('eventMapUrl').value = eventData.mapUrl || '';
+      document.getElementById('eventPrice').value = eventData.price || '';
+      document.getElementById('eventCapacity').value = eventData.capacity || '';
+      document.getElementById('eventPerformer').value = eventData.performer || '';
+      document.getElementById('eventProgram').value = eventData.program || '';
+      document.getElementById('eventContact').value = eventData.contact || '';
+      document.getElementById('eventSpecial').value = eventData.special || '';
+      document.getElementById('eventStatus').value = eventData.status || 'draft';
+    } else {
+      clearEventForm();
+    }
+  }
+
+  function hideEventForm() {
+    document.getElementById('eventForm').style.display = 'none';
+    clearEventForm();
+  }
+
+  function clearEventForm() {
+    document.getElementById('editEventId').value = '';
+    document.getElementById('eventTitle').value = '';
+    document.getElementById('eventDate').value = '';
+    document.getElementById('eventOpenTime').value = '';
+    document.getElementById('eventStartTime').value = '';
+    document.getElementById('eventVenue').value = '';
+    document.getElementById('eventAddress').value = '';
+    document.getElementById('eventVenueUrl').value = '';
+    document.getElementById('eventMapUrl').value = '';
+    document.getElementById('eventPrice').value = '';
+    document.getElementById('eventCapacity').value = '';
+    document.getElementById('eventPerformer').value = '';
+    document.getElementById('eventProgram').value = '';
+    document.getElementById('eventContact').value = '';
+    document.getElementById('eventSpecial').value = '';
+    document.getElementById('eventStatus').value = 'draft';
+    document.getElementById('eventSuccess').style.display = 'none';
+    document.getElementById('eventError').style.display = 'none';
+  }
+
+  async function saveEvent() {
+    const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+    const successEl = document.getElementById('eventSuccess');
+    const errorEl = document.getElementById('eventError');
+
+    successEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    const eventData = {
+      action: 'saveEvent',
+      adminEmail: session.email,
+      adminPassword: session.password,
+      eventId: document.getElementById('editEventId').value,
+      title: document.getElementById('eventTitle').value,
+      date: document.getElementById('eventDate').value,
+      openTime: document.getElementById('eventOpenTime').value,
+      startTime: document.getElementById('eventStartTime').value,
+      venue: document.getElementById('eventVenue').value,
+      address: document.getElementById('eventAddress').value,
+      venueUrl: document.getElementById('eventVenueUrl').value,
+      mapUrl: document.getElementById('eventMapUrl').value,
+      price: document.getElementById('eventPrice').value,
+      capacity: document.getElementById('eventCapacity').value,
+      performer: document.getElementById('eventPerformer').value,
+      program: document.getElementById('eventProgram').value,
+      contact: document.getElementById('eventContact').value,
+      special: document.getElementById('eventSpecial').value,
+      status: document.getElementById('eventStatus').value
+    };
+
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      });
+
+      successEl.textContent = 'イベントを保存しました';
+      successEl.style.display = 'block';
+
+      setTimeout(() => {
+        hideEventForm();
+        loadEvents();
+      }, 1500);
+
+    } catch (error) {
+      errorEl.textContent = '保存に失敗しました';
+      errorEl.style.display = 'block';
+    }
+  }
+
+  async function loadEvents() {
+    const listEl = document.getElementById('eventList');
+    listEl.innerHTML = '<div class="no-events">読み込み中...</div>';
+
+    // For now, show placeholder - will load from GAS
+    try {
+      const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+
+      // Fetch events via script tag (JSONP-like) since no-cors doesn't return data
+      const response = await fetch(`${GAS_URL}?action=getEvents&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.events && data.events.length > 0) {
+          renderEventList(data.events);
+        } else {
+          listEl.innerHTML = '<div class="no-events">イベントがありません</div>';
+        }
+      } else {
+        listEl.innerHTML = '<div class="no-events">イベント一覧を取得できませんでした</div>';
+      }
+    } catch (error) {
+      listEl.innerHTML = '<div class="no-events">イベント一覧を取得できませんでした</div>';
+    }
+  }
+
+  function renderEventList(events) {
+    const listEl = document.getElementById('eventList');
+    listEl.innerHTML = events.map(ev => `
+      <div class="event-item">
+        <div class="event-info">
+          <span class="event-id">${ev.id}</span>
+          <h4>${ev.title}</h4>
+          <p>${ev.date} ${ev.startTime} / ${ev.venue}</p>
+        </div>
+        <div class="event-actions">
+          <button class="btn btn-outline" onclick='showEventForm(${JSON.stringify(ev)})'>編集</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadSupporters() {
+    const listEl = document.getElementById('supporterList');
+    listEl.innerHTML = '<div class="no-events">読み込み中...</div>';
+
+    try {
+      const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+      const response = await fetch(`${GAS_URL}?action=getSupporters&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.supporters && data.supporters.length > 0) {
+          listEl.innerHTML = data.supporters.map(s => `
+            <div class="event-item">
+              <div class="event-info">
+                <span class="event-id">${s.memberNumber || '-'}</span>
+                <h4>${s.name || '(未登録)'}</h4>
+                <p>${s.email} / ${s.supportType || '-'} / ${s.status}</p>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          listEl.innerHTML = '<div class="no-events">サポーターがいません</div>';
+        }
+      }
+    } catch (error) {
+      listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
+    }
+  }
+</script>
+
+</body>
+</html>
