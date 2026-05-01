@@ -925,6 +925,108 @@
     text-align: center;
   }
 
+  /* Step indicator */
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .step {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-base-deep);
+    border: 2px solid rgba(26, 40, 64, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--color-sumi-light);
+  }
+
+  .step.active {
+    background: var(--color-hi);
+    border-color: var(--color-hi);
+    color: white;
+  }
+
+  .step.completed {
+    background: var(--color-moegi);
+    border-color: var(--color-moegi);
+    color: white;
+  }
+
+  .step-line {
+    width: 40px;
+    height: 2px;
+    background: rgba(26, 40, 64, 0.15);
+  }
+
+  .step-line.active {
+    background: var(--color-hi);
+  }
+
+  .step-line.completed {
+    background: var(--color-moegi);
+  }
+
+  .form-step-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--color-edo);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .form-step-desc {
+    text-align: center;
+    color: var(--color-sumi-light);
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 32px;
+  }
+
+  .email-sent-icon,
+  .completed-icon {
+    font-size: 64px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .email-notice {
+    background: rgba(26, 40, 64, 0.05);
+    padding: 20px;
+    margin: 24px 0;
+    font-size: 13px;
+    color: var(--color-edo);
+  }
+
+  .email-notice p {
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .email-notice ul {
+    margin-left: 20px;
+    line-height: 1.8;
+  }
+
+  .verified-email {
+    background: rgba(42, 92, 61, 0.1);
+    border: 1px solid var(--color-moegi);
+    color: var(--color-moegi);
+    padding: 12px 20px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    text-align: center;
+  }
+
   /* Form messages */
   .form-message {
     padding: 16px 20px;
@@ -1646,8 +1748,120 @@
       Join us in creating the future of Rakugo, from Shirakawa to the world.
     </p>
 
-    <form class="supporter-form reveal" id="supporterForm" onsubmit="return handleSupporterSubmit(event)">
-      <div class="form-message" id="formMessage"></div>
+    <!-- ===== Step 1: メールアドレス入力 ===== -->
+    <form class="supporter-form reveal" id="emailForm" onsubmit="return handleEmailSubmit(event)">
+      <div class="form-message" id="emailFormMessage"></div>
+
+      <div class="step-indicator">
+        <span class="step active">1</span>
+        <span class="step-line"></span>
+        <span class="step">2</span>
+        <span class="step-line"></span>
+        <span class="step">3</span>
+      </div>
+
+      <h3 class="form-step-title ja-only">Step 1: メールアドレスの登録</h3>
+      <h3 class="form-step-title en-only">Step 1: Enter Your Email</h3>
+
+      <p class="form-step-desc ja-only">
+        まずメールアドレスをご入力ください。<br>認証メールをお送りします。
+      </p>
+      <p class="form-step-desc en-only">
+        Please enter your email address.<br>We will send you a verification email.
+      </p>
+
+      <div class="form-group">
+        <label for="initialEmail" class="ja-only">メールアドレス<span class="required">*必須</span></label>
+        <label for="initialEmail" class="en-only">Email Address<span class="required">*Required</span></label>
+        <input type="email" id="initialEmail" name="email" required
+               placeholder="example@email.com">
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="emailSubmitBtn">
+          <span class="ja-only">認証メールを送信</span>
+          <span class="en-only">Send Verification Email</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- ===== Step 2: メール送信完了メッセージ ===== -->
+    <div class="supporter-form reveal" id="emailSentMessage" style="display: none;">
+      <div class="step-indicator">
+        <span class="step completed">✓</span>
+        <span class="step-line active"></span>
+        <span class="step active">2</span>
+        <span class="step-line"></span>
+        <span class="step">3</span>
+      </div>
+
+      <div class="email-sent-icon">📧</div>
+      <h3 class="form-step-title ja-only">認証メールを送信しました</h3>
+      <h3 class="form-step-title en-only">Verification Email Sent</h3>
+
+      <p class="form-step-desc ja-only">
+        <strong id="sentEmailDisplay"></strong> 宛に認証メールを送信しました。<br>
+        メール内のリンクをクリックして、登録を続けてください。
+      </p>
+      <p class="form-step-desc en-only">
+        A verification email has been sent to <strong id="sentEmailDisplayEn"></strong>.<br>
+        Please click the link in the email to continue registration.
+      </p>
+
+      <div class="email-notice ja-only">
+        <p>📌 メールが届かない場合</p>
+        <ul>
+          <li>迷惑メールフォルダをご確認ください</li>
+          <li>数分待ってから再度お試しください</li>
+        </ul>
+      </div>
+      <div class="email-notice en-only">
+        <p>📌 If you don't receive the email</p>
+        <ul>
+          <li>Check your spam folder</li>
+          <li>Wait a few minutes and try again</li>
+        </ul>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="showEmailForm()">
+          <span class="ja-only">別のメールアドレスで登録</span>
+          <span class="en-only">Use Different Email</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== Step 3: 詳細情報入力 ===== -->
+    <form class="supporter-form reveal" id="detailForm" style="display: none;" onsubmit="return handleDetailSubmit(event)">
+      <div class="form-message" id="detailFormMessage"></div>
+
+      <div class="step-indicator">
+        <span class="step completed">✓</span>
+        <span class="step-line completed"></span>
+        <span class="step completed">✓</span>
+        <span class="step-line active"></span>
+        <span class="step active">3</span>
+      </div>
+
+      <h3 class="form-step-title ja-only">Step 3: 詳細情報の登録</h3>
+      <h3 class="form-step-title en-only">Step 3: Complete Your Registration</h3>
+
+      <p class="form-step-desc ja-only">
+        メールアドレスの認証が完了しました。<br>以下の情報を入力して登録を完了してください。
+      </p>
+      <p class="form-step-desc en-only">
+        Your email has been verified.<br>Please complete your registration below.
+      </p>
+
+      <div class="verified-email ja-only">
+        ✅ 認証済み: <strong id="verifiedEmailDisplay"></strong>
+      </div>
+      <div class="verified-email en-only">
+        ✅ Verified: <strong id="verifiedEmailDisplayEn"></strong>
+      </div>
+
+      <input type="hidden" id="verifiedEmail" name="email">
+      <input type="hidden" id="verificationToken" name="token">
 
       <!-- Support Type -->
       <div class="form-group">
@@ -1695,14 +1909,6 @@
                placeholder="山田 太郎 / Yamada Taro">
       </div>
 
-      <!-- Email -->
-      <div class="form-group">
-        <label for="supporterEmail" class="ja-only">メールアドレス<span class="required">*必須</span></label>
-        <label for="supporterEmail" class="en-only">Email Address<span class="required">*Required</span></label>
-        <input type="email" id="supporterEmail" name="email" required
-               placeholder="example@email.com">
-      </div>
-
       <!-- Phone (optional) -->
       <div class="form-group">
         <label for="supporterPhone" class="ja-only">電話番号（任意）</label>
@@ -1716,8 +1922,7 @@
         <label for="supporterInterest" class="ja-only">ご関心のある活動</label>
         <label for="supporterInterest" class="en-only">Area of Interest</label>
         <select id="supporterInterest" name="interest">
-          <option value="" class="ja-only">選択してください</option>
-          <option value="" class="en-only">Please select</option>
+          <option value="">---</option>
           <option value="all" class="ja-only">すべての活動</option>
           <option value="all" class="en-only">All activities</option>
           <option value="contest" class="ja-only">落語コンテスト</option>
@@ -1737,8 +1942,6 @@
         <label for="supporterMessage" class="en-only">Message (Optional)</label>
         <textarea id="supporterMessage" name="message"
                   placeholder="応援メッセージやご質問など / Your message or questions"></textarea>
-        <p class="form-note ja-only">ご支援の動機や、ご協力いただける内容などをご記入ください。</p>
-        <p class="form-note en-only">Please share your motivation for supporting or how you would like to contribute.</p>
       </div>
 
       <!-- Privacy Agreement -->
@@ -1752,16 +1955,43 @@
 
       <!-- Submit -->
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">
-          <span class="ja-only">サポーター登録する</span>
-          <span class="en-only">Register as Supporter</span>
-        </button>
-        <button type="reset" class="btn btn-outline" onclick="resetForm()">
-          <span class="ja-only">入力をクリア</span>
-          <span class="en-only">Clear Form</span>
+        <button type="submit" class="btn btn-primary" id="detailSubmitBtn">
+          <span class="ja-only">サポーター登録を完了</span>
+          <span class="en-only">Complete Registration</span>
         </button>
       </div>
     </form>
+
+    <!-- ===== 登録完了メッセージ ===== -->
+    <div class="supporter-form reveal" id="completedMessage" style="display: none;">
+      <div class="step-indicator">
+        <span class="step completed">✓</span>
+        <span class="step-line completed"></span>
+        <span class="step completed">✓</span>
+        <span class="step-line completed"></span>
+        <span class="step completed">✓</span>
+      </div>
+
+      <div class="completed-icon">🎉</div>
+      <h3 class="form-step-title ja-only">サポーター登録が完了しました！</h3>
+      <h3 class="form-step-title en-only">Registration Complete!</h3>
+
+      <p class="form-step-desc ja-only">
+        三晶プロダクションのサポーターにご登録いただき、誠にありがとうございます。<br>
+        今後の活動情報をお届けいたします。
+      </p>
+      <p class="form-step-desc en-only">
+        Thank you for becoming a supporter of Mitsu Akira Production!<br>
+        We will keep you updated on our activities.
+      </p>
+
+      <div class="form-actions">
+        <a href="#top" class="btn btn-primary">
+          <span class="ja-only">トップに戻る</span>
+          <span class="en-only">Back to Top</span>
+        </a>
+      </div>
+    </div>
 
     <!-- Benefits -->
     <div class="supporter-benefits reveal">
@@ -1894,108 +2124,181 @@
     });
   });
 
-  // ============ Supporter Registration Logic ============
+  // ============ Supporter Registration Logic (2-Step with Email Verification) ============
 
   // Google Apps Script Web App URL
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxzKL2yWm5Q_Fj_Xbj7adaNhFbd6_VPalMW2gDLst_3-U8mfICs52Gju3RbwQHB_ovF3g/exec';
 
-  // Form submission handler
-  async function handleSupporterSubmit(event) {
+  // Check URL parameters on page load (for email verification callback)
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const verified = urlParams.get('verified');
+    const token = urlParams.get('token');
+    const email = urlParams.get('email');
+
+    if (verified === 'true' && token && email) {
+      // メール認証完了 → 詳細登録フォームを表示
+      showDetailForm(email, token);
+      // URLパラメータをクリア
+      window.history.replaceState({}, document.title, window.location.pathname + '#supporter');
+      // サポーターセクションにスクロール
+      setTimeout(() => {
+        document.getElementById('supporter').scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  });
+
+  // Step 1: メールアドレス送信
+  async function handleEmailSubmit(event) {
     event.preventDefault();
 
-    const form = document.getElementById('supporterForm');
-    const messageEl = document.getElementById('formMessage');
-    const submitBtn = form.querySelector('button[type="submit"]');
+    const form = document.getElementById('emailForm');
+    const messageEl = document.getElementById('emailFormMessage');
+    const submitBtn = document.getElementById('emailSubmitBtn');
+    const email = document.getElementById('initialEmail').value.trim();
     const isJapanese = document.body.classList.contains('lang-ja');
-
-    // Validate required fields
-    const supportType = form.querySelector('input[name="supportType"]:checked');
-    const name = form.querySelector('#supporterName').value.trim();
-    const email = form.querySelector('#supporterEmail').value.trim();
-    const privacy = form.querySelector('#privacyAgree').checked;
 
     // Clear previous messages
     messageEl.className = 'form-message';
-    messageEl.textContent = '';
+    messageEl.style.display = 'none';
+
+    // Validation
+    if (!email || !isValidEmail(email)) {
+      showMessage('emailFormMessage', 'error',
+        isJapanese ? '有効なメールアドレスを入力してください。' : 'Please enter a valid email address.');
+      return false;
+    }
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = isJapanese ? '送信中...' : 'Sending...';
+
+    try {
+      // Send to GAS
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sendVerification',
+          email: email,
+          language: isJapanese ? 'ja' : 'en'
+        })
+      });
+
+      // Show email sent message
+      document.getElementById('emailForm').style.display = 'none';
+      document.getElementById('emailSentMessage').style.display = 'block';
+      document.getElementById('sentEmailDisplay').textContent = email;
+      document.getElementById('sentEmailDisplayEn').textContent = email;
+
+    } catch (error) {
+      console.error('Error:', error);
+      showMessage('emailFormMessage', 'error',
+        isJapanese ? 'エラーが発生しました。再度お試しください。' : 'An error occurred. Please try again.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = isJapanese
+        ? '<span class="ja-only">認証メールを送信</span><span class="en-only">Send Verification Email</span>'
+        : '<span class="ja-only">認証メールを送信</span><span class="en-only">Send Verification Email</span>';
+    }
+
+    return false;
+  }
+
+  // Show email form again
+  function showEmailForm() {
+    document.getElementById('emailSentMessage').style.display = 'none';
+    document.getElementById('emailForm').style.display = 'block';
+    document.getElementById('initialEmail').value = '';
+  }
+
+  // Show detail form (after email verification)
+  function showDetailForm(email, token) {
+    document.getElementById('emailForm').style.display = 'none';
+    document.getElementById('emailSentMessage').style.display = 'none';
+    document.getElementById('detailForm').style.display = 'block';
+    document.getElementById('verifiedEmail').value = email;
+    document.getElementById('verificationToken').value = token;
+    document.getElementById('verifiedEmailDisplay').textContent = email;
+    document.getElementById('verifiedEmailDisplayEn').textContent = email;
+  }
+
+  // Step 3: 詳細情報送信
+  async function handleDetailSubmit(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('detailForm');
+    const messageEl = document.getElementById('detailFormMessage');
+    const submitBtn = document.getElementById('detailSubmitBtn');
+    const isJapanese = document.body.classList.contains('lang-ja');
+
+    // Get form values
+    const supportType = form.querySelector('input[name="supportType"]:checked');
+    const name = document.getElementById('supporterName').value.trim();
+    const email = document.getElementById('verifiedEmail').value;
+    const token = document.getElementById('verificationToken').value;
+    const privacy = document.getElementById('privacyAgree').checked;
+
+    // Clear previous messages
+    messageEl.className = 'form-message';
+    messageEl.style.display = 'none';
 
     // Validation
     if (!supportType) {
-      showFormMessage('error',
+      showMessage('detailFormMessage', 'error',
         isJapanese ? 'サポート種別を選択してください。' : 'Please select a support type.');
       return false;
     }
 
     if (!name) {
-      showFormMessage('error',
+      showMessage('detailFormMessage', 'error',
         isJapanese ? 'お名前を入力してください。' : 'Please enter your name.');
       return false;
     }
 
-    if (!email || !isValidEmail(email)) {
-      showFormMessage('error',
-        isJapanese ? '有効なメールアドレスを入力してください。' : 'Please enter a valid email address.');
-      return false;
-    }
-
     if (!privacy) {
-      showFormMessage('error',
+      showMessage('detailFormMessage', 'error',
         isJapanese ? '個人情報の取り扱いに同意してください。' : 'Please agree to the privacy policy.');
       return false;
     }
 
-    // Collect form data
-    const formData = {
-      supportType: supportType.value,
-      name: name,
-      email: email,
-      phone: form.querySelector('#supporterPhone').value.trim(),
-      interest: form.querySelector('#supporterInterest').value,
-      message: form.querySelector('#supporterMessage').value.trim(),
-      language: isJapanese ? 'ja' : 'en'
-    };
-
     // Show loading state
     submitBtn.disabled = true;
-    submitBtn.innerHTML = isJapanese
-      ? '<span class="ja-only">送信中...</span>'
-      : '<span class="en-only">Submitting...</span>';
+    submitBtn.innerHTML = isJapanese ? '登録中...' : 'Registering...';
 
     try {
-      // Send to Google Apps Script
-      const response = await fetch(GAS_URL, {
+      // Send to GAS
+      await fetch(GAS_URL, {
         method: 'POST',
-        mode: 'no-cors', // GASはCORSをサポートしないため
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'completeRegistration',
+          email: email,
+          token: token,
+          supportType: supportType.value,
+          name: name,
+          phone: document.getElementById('supporterPhone').value.trim(),
+          interest: document.getElementById('supporterInterest').value,
+          message: document.getElementById('supporterMessage').value.trim(),
+          language: isJapanese ? 'ja' : 'en'
+        })
       });
 
-      // no-corsモードではレスポンスを読めないため、送信成功と見なす
-      // Show success message
-      showFormMessage('success',
-        isJapanese
-          ? 'サポーター登録ありがとうございます！ご登録を確認次第、ご連絡いたします。'
-          : 'Thank you for registering as a supporter! We will contact you shortly.');
-
-      // Reset form
-      form.reset();
-
-      // Scroll to message
-      messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Show completion message
+      document.getElementById('detailForm').style.display = 'none';
+      document.getElementById('completedMessage').style.display = 'block';
 
     } catch (error) {
-      console.error('Registration error:', error);
-      showFormMessage('error',
-        isJapanese
-          ? '送信中にエラーが発生しました。しばらく経ってから再度お試しください。'
-          : 'An error occurred. Please try again later.');
+      console.error('Error:', error);
+      showMessage('detailFormMessage', 'error',
+        isJapanese ? 'エラーが発生しました。再度お試しください。' : 'An error occurred. Please try again.');
     } finally {
-      // Reset button state
       submitBtn.disabled = false;
       submitBtn.innerHTML = isJapanese
-        ? '<span class="ja-only">サポーター登録する</span><span class="en-only">Register as Supporter</span>'
-        : '<span class="ja-only">サポーター登録する</span><span class="en-only">Register as Supporter</span>';
+        ? '<span class="ja-only">サポーター登録を完了</span><span class="en-only">Complete Registration</span>'
+        : '<span class="ja-only">サポーター登録を完了</span><span class="en-only">Complete Registration</span>';
     }
 
     return false;
@@ -2008,19 +2311,11 @@
   }
 
   // Show form message
-  function showFormMessage(type, message) {
-    const messageEl = document.getElementById('formMessage');
+  function showMessage(elementId, type, message) {
+    const messageEl = document.getElementById(elementId);
     messageEl.className = 'form-message ' + type;
     messageEl.textContent = message;
     messageEl.style.display = 'block';
-  }
-
-  // Reset form and clear message
-  function resetForm() {
-    const messageEl = document.getElementById('formMessage');
-    messageEl.className = 'form-message';
-    messageEl.textContent = '';
-    messageEl.style.display = 'none';
   }
 </script>
 
