@@ -23,6 +23,50 @@ const SHEET_ADMIN = '管理者マスタ';
 // トークン有効期限（24時間）
 const TOKEN_EXPIRY_HOURS = 24;
 
+// ===== テスト用関数（権限承認用）=====
+// GASエディタでこの関数を実行して、Gmail送信の権限を承認してください
+function testEmailSend() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // email_logシートを作成
+  let logSheet = ss.getSheetByName(SHEET_EMAIL_LOG);
+  if (!logSheet) {
+    logSheet = ss.insertSheet(SHEET_EMAIL_LOG);
+    logSheet.appendRow(['log_id', 'to_email', 'to_name', 'subject', 'template', 'related_id', 'status', 'sent_at', 'error_message']);
+    logSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    logSheet.setFrozenRows(1);
+    console.log('email_logシートを作成しました');
+  }
+
+  // 管理者のメールアドレスを取得
+  const adminSheet = ss.getSheetByName(SHEET_ADMIN);
+  if (!adminSheet) {
+    console.log('管理者マスタがありません');
+    return;
+  }
+
+  const adminData = adminSheet.getDataRange().getValues();
+  if (adminData.length < 2) {
+    console.log('管理者データがありません');
+    return;
+  }
+
+  const adminEmail = adminData[1][0]; // 最初の管理者のメールアドレス
+
+  // テストメール送信
+  try {
+    GmailApp.sendEmail(adminEmail, '【テスト】三晶プロダクション メール送信テスト',
+      'これはメール送信機能のテストです。\n\nこのメールが届いていれば、メール送信は正常に動作しています。');
+    console.log('テストメールを送信しました: ' + adminEmail);
+
+    // ログに記録
+    logSheet.appendRow(['TEST-' + Date.now(), adminEmail, '管理者', 'テストメール', 'test', '', 'sent', new Date(), '']);
+  } catch (e) {
+    console.error('メール送信エラー: ' + e.toString());
+    logSheet.appendRow(['TEST-' + Date.now(), adminEmail, '管理者', 'テストメール', 'test', '', 'error', new Date(), e.toString()]);
+  }
+}
+
 // ===== POSTリクエスト処理 =====
 function doPost(e) {
   try {
