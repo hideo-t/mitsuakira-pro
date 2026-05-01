@@ -2846,9 +2846,23 @@
   // Google Apps Script Web App URL
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyNkDvsE8ui0jE74pkZpFgEn6RZqUQel_aXGuvSqBcKOS4-sPVnybfT_yIb-jYnUy4VGg/exec';
 
+  // チャネル追跡（LINE/web/email等）
+  let userChannel = 'web'; // デフォルト
+
   // Check URL parameters on page load (for email verification callback)
   document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
+
+    // チャネル検出（?from=line など）
+    const fromParam = urlParams.get('from');
+    if (fromParam) {
+      userChannel = fromParam; // line, email, sns, etc.
+    }
+    // LINE経由のリファラーチェック
+    if (document.referrer.includes('line.me') || document.referrer.includes('lin.ee')) {
+      userChannel = 'line';
+    }
+
     const verified = urlParams.get('verified');
     const token = urlParams.get('token');
     const email = urlParams.get('email');
@@ -3409,6 +3423,7 @@
           memberId: memberId,
           wantsToRegister: wantsToRegister,
           notes: notes,
+          channel: userChannel,
           language: isJapanese ? 'ja' : 'en'
         })
       });
