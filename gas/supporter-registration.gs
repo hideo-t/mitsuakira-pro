@@ -69,26 +69,41 @@ function testEmailSend() {
 
 // ===== POSTリクエスト処理 =====
 function doPost(e) {
-  // 最初にデバッグログを書き込む
+  // 最初にデバッグログを書き込む（エラーも記録）
+  let debugSheet = null;
+  let ss = null;
+
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let debugSheet = ss.getSheetByName('debug_log');
+    ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    debugSheet = ss.getSheetByName('debug_log');
     if (!debugSheet) {
       debugSheet = ss.insertSheet('debug_log');
       debugSheet.appendRow(['timestamp', 'type', 'message']);
     }
-    debugSheet.appendRow([new Date(), 'doPost_start', 'doPost called']);
-
-    // postDataの確認
-    if (!e || !e.postData) {
-      debugSheet.appendRow([new Date(), 'error', 'e or e.postData is null']);
-      return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No postData'}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    debugSheet.appendRow([new Date(), 'postData', e.postData.contents]);
+    debugSheet.appendRow([new Date(), 'doPost_start', 'doPost called successfully']);
   } catch (debugError) {
-    // デバッグログ自体のエラーは無視して続行
+    // スプレッドシートへのアクセスエラーをログに記録
+    // Logger.logに出力（GASエディタの「実行ログ」で確認可能）
+    Logger.log('Debug sheet error: ' + debugError.toString());
+    // 続行可能な場合は続行
+  }
+
+  // postDataの確認
+  if (!e || !e.postData) {
+    if (debugSheet) {
+      debugSheet.appendRow([new Date(), 'error', 'e or e.postData is null/undefined']);
+    }
+    Logger.log('doPost: e or e.postData is null');
+    return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No postData'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (debugSheet) {
+    try {
+      debugSheet.appendRow([new Date(), 'postData', e.postData.contents ? e.postData.contents.substring(0, 500) : 'empty']);
+    } catch (logErr) {
+      // ログエラーは無視
+    }
   }
 
   try {
@@ -150,6 +165,26 @@ function doPost(e) {
 function doGet(e) {
   const action = e.parameter.action;
   const token = e.parameter.token;
+
+  // テスト用ping（デプロイ確認用）
+  // ブラウザで GAS_URL?action=ping にアクセスして動作確認
+  if (action === 'ping') {
+    // debug_logシートにも記録
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let debugSheet = ss.getSheetByName('debug_log');
+      if (!debugSheet) {
+        debugSheet = ss.insertSheet('debug_log');
+        debugSheet.appendRow(['timestamp', 'type', 'message']);
+      }
+      debugSheet.appendRow([new Date(), 'ping', 'ping received via GET']);
+    } catch (err) {
+      // エラーは無視
+    }
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, message: 'pong', timestamp: new Date().toISOString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   // メール確認（予約）
   if (action === 'confirmReservation' && token) {
