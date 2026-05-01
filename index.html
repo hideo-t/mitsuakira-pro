@@ -750,6 +750,258 @@
     color: var(--color-edo);
   }
 
+  /* ---------- Supporter section ---------- */
+  .supporter {
+    background: linear-gradient(180deg, var(--color-base-deep) 0%, var(--color-base) 100%);
+    position: relative;
+  }
+
+  .supporter-intro {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 2;
+    color: var(--color-edo);
+    max-width: 700px;
+    margin-bottom: 48px;
+  }
+
+  .supporter-form {
+    background: white;
+    padding: 48px;
+    border: 1px solid rgba(26, 40, 64, 0.1);
+    box-shadow: 0 8px 32px rgba(26, 40, 64, 0.08);
+    max-width: 640px;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  .form-group label {
+    display: block;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--color-edo);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .form-group label .required {
+    color: var(--color-hi);
+    font-size: 12px;
+    margin-left: 4px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 14px 16px;
+    font-family: var(--sans);
+    font-size: 15px;
+    border: 1px solid rgba(26, 40, 64, 0.2);
+    background: var(--color-base);
+    color: var(--color-edo);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-hi);
+    box-shadow: 0 0 0 3px rgba(139, 10, 26, 0.1);
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: var(--color-sumi-light);
+    opacity: 0.7;
+  }
+
+  .form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .form-group select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231A2840' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+  }
+
+  .support-types {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  .support-type-option {
+    position: relative;
+  }
+
+  .support-type-option input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .support-type-option label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px;
+    border: 2px solid rgba(26, 40, 64, 0.15);
+    background: var(--color-base);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  .support-type-option label:hover {
+    border-color: var(--color-hi);
+    background: rgba(139, 10, 26, 0.03);
+  }
+
+  .support-type-option input:checked + label {
+    border-color: var(--color-hi);
+    background: rgba(139, 10, 26, 0.08);
+  }
+
+  .support-type-option .type-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .support-type-option .type-name {
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .support-type-option .type-desc {
+    font-size: 11px;
+    color: var(--color-sumi-light);
+    margin-top: 4px;
+  }
+
+  .form-note {
+    font-size: 12px;
+    color: var(--color-sumi-light);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  .form-privacy {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 32px;
+    font-size: 13px;
+    color: var(--color-edo);
+  }
+
+  .form-privacy input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--color-hi);
+    cursor: pointer;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .form-actions .btn {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+  }
+
+  /* Form messages */
+  .form-message {
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-family: var(--serif);
+    font-size: 14px;
+    display: none;
+  }
+
+  .form-message.success {
+    display: block;
+    background: rgba(42, 92, 61, 0.1);
+    border: 1px solid var(--color-moegi);
+    color: var(--color-moegi);
+  }
+
+  .form-message.error {
+    display: block;
+    background: rgba(139, 10, 26, 0.08);
+    border: 1px solid var(--color-hi);
+    color: var(--color-hi);
+  }
+
+  /* Supporter benefits */
+  .supporter-benefits {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-top: 64px;
+  }
+
+  .benefit-card {
+    background: white;
+    padding: 32px 24px;
+    border: 1px solid rgba(26, 40, 64, 0.08);
+    text-align: center;
+  }
+
+  .benefit-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  .benefit-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--color-edo);
+    margin-bottom: 12px;
+  }
+
+  .benefit-desc {
+    font-size: 13px;
+    color: var(--color-sumi-light);
+    line-height: 1.7;
+  }
+
+  @media (max-width: 900px) {
+    .supporter-form {
+      padding: 32px 24px;
+    }
+
+    .support-types {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 500px) {
+    .support-types {
+      grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+  }
+
   /* ---------- Contact section ---------- */
   .contact {
     background: var(--color-edo);
@@ -1051,6 +1303,31 @@
     .dojo-info h4 { color: #B8860B !important; }
     .dojo-info dt { color: #A789B8 !important; }
 
+    .supporter {
+      page-break-before: always;
+    }
+    .supporter-form {
+      display: none !important;
+    }
+    .supporter-benefits {
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 12px !important;
+      margin-top: 24px !important;
+    }
+    .benefit-card {
+      padding: 16px 12px !important;
+    }
+    .benefit-icon {
+      font-size: 20px !important;
+      margin-bottom: 8px !important;
+    }
+    .benefit-title {
+      font-size: 12pt !important;
+    }
+    .benefit-desc {
+      font-size: 9pt !important;
+    }
+
     .contact {
       background: #1A2840 !important;
       color: #F5F0E8 !important;
@@ -1093,6 +1370,7 @@
         <li><a href="#contest" class="ja-only">コンテスト</a><a href="#contest" class="en-only">Contest</a></li>
         <li><a href="#dojo" class="ja-only">道場</a><a href="#dojo" class="en-only">Dojo</a></li>
         <li><a href="gallery.html" class="ja-only">写真集</a><a href="gallery.html" class="en-only">Gallery</a></li>
+        <li><a href="#supporter" class="ja-only">サポーター</a><a href="#supporter" class="en-only">Supporter</a></li>
         <li><a href="#contact" class="ja-only">お問い合わせ</a><a href="#contact" class="en-only">Contact</a></li>
         <li class="lang-switch">
           <button data-lang="ja" class="active">JP</button>
@@ -1351,6 +1629,174 @@
   </div>
 </section>
 
+<!-- ============ SUPPORTER ============ -->
+<section class="supporter" id="supporter">
+  <div class="section-inner">
+    <p class="section-label reveal">Become a Supporter</p>
+    <h2 class="section-title reveal">
+      <span class="ja-only">サポーター登録</span>
+      <span class="en-only">Supporter Registration</span>
+    </h2>
+    <p class="supporter-intro reveal ja-only">
+      三晶プロダクションの活動を応援いただける方を募集しています。<br>
+      白河から世界へ、落語の未来を共に創りませんか。
+    </p>
+    <p class="supporter-intro reveal en-only">
+      We are seeking supporters for Mitsu Akira Production's activities.<br>
+      Join us in creating the future of Rakugo, from Shirakawa to the world.
+    </p>
+
+    <form class="supporter-form reveal" id="supporterForm" onsubmit="return handleSupporterSubmit(event)">
+      <div class="form-message" id="formMessage"></div>
+
+      <!-- Support Type -->
+      <div class="form-group">
+        <label class="ja-only">サポート種別<span class="required">*必須</span></label>
+        <label class="en-only">Support Type<span class="required">*Required</span></label>
+        <div class="support-types">
+          <div class="support-type-option">
+            <input type="radio" name="supportType" id="typePersonal" value="personal" required>
+            <label for="typePersonal">
+              <span class="type-icon">👤</span>
+              <span class="type-name ja-only">個人サポーター</span>
+              <span class="type-name en-only">Individual</span>
+              <span class="type-desc ja-only">個人としてご支援</span>
+              <span class="type-desc en-only">Personal support</span>
+            </label>
+          </div>
+          <div class="support-type-option">
+            <input type="radio" name="supportType" id="typeCorporate" value="corporate">
+            <label for="typeCorporate">
+              <span class="type-icon">🏢</span>
+              <span class="type-name ja-only">法人・企業</span>
+              <span class="type-name en-only">Corporate</span>
+              <span class="type-desc ja-only">法人としてご協賛</span>
+              <span class="type-desc en-only">Corporate sponsorship</span>
+            </label>
+          </div>
+          <div class="support-type-option">
+            <input type="radio" name="supportType" id="typeVolunteer" value="volunteer">
+            <label for="typeVolunteer">
+              <span class="type-icon">🤝</span>
+              <span class="type-name ja-only">ボランティア</span>
+              <span class="type-name en-only">Volunteer</span>
+              <span class="type-desc ja-only">活動のお手伝い</span>
+              <span class="type-desc en-only">Help with activities</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Name -->
+      <div class="form-group">
+        <label for="supporterName" class="ja-only">お名前（または法人名）<span class="required">*必須</span></label>
+        <label for="supporterName" class="en-only">Name (or Organization)<span class="required">*Required</span></label>
+        <input type="text" id="supporterName" name="name" required
+               placeholder="山田 太郎 / Yamada Taro">
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label for="supporterEmail" class="ja-only">メールアドレス<span class="required">*必須</span></label>
+        <label for="supporterEmail" class="en-only">Email Address<span class="required">*Required</span></label>
+        <input type="email" id="supporterEmail" name="email" required
+               placeholder="example@email.com">
+      </div>
+
+      <!-- Phone (optional) -->
+      <div class="form-group">
+        <label for="supporterPhone" class="ja-only">電話番号（任意）</label>
+        <label for="supporterPhone" class="en-only">Phone Number (Optional)</label>
+        <input type="tel" id="supporterPhone" name="phone"
+               placeholder="090-1234-5678">
+      </div>
+
+      <!-- Interest Area -->
+      <div class="form-group">
+        <label for="supporterInterest" class="ja-only">ご関心のある活動</label>
+        <label for="supporterInterest" class="en-only">Area of Interest</label>
+        <select id="supporterInterest" name="interest">
+          <option value="" class="ja-only">選択してください</option>
+          <option value="" class="en-only">Please select</option>
+          <option value="all" class="ja-only">すべての活動</option>
+          <option value="all" class="en-only">All activities</option>
+          <option value="contest" class="ja-only">落語コンテスト</option>
+          <option value="contest" class="en-only">Rakugo Contest</option>
+          <option value="dojo" class="ja-only">落語道場</option>
+          <option value="dojo" class="en-only">Rakugo Dojo</option>
+          <option value="event" class="ja-only">公演・イベント</option>
+          <option value="event" class="en-only">Performances & Events</option>
+          <option value="international" class="ja-only">海外展開</option>
+          <option value="international" class="en-only">International Expansion</option>
+        </select>
+      </div>
+
+      <!-- Message -->
+      <div class="form-group">
+        <label for="supporterMessage" class="ja-only">メッセージ（任意）</label>
+        <label for="supporterMessage" class="en-only">Message (Optional)</label>
+        <textarea id="supporterMessage" name="message"
+                  placeholder="応援メッセージやご質問など / Your message or questions"></textarea>
+        <p class="form-note ja-only">ご支援の動機や、ご協力いただける内容などをご記入ください。</p>
+        <p class="form-note en-only">Please share your motivation for supporting or how you would like to contribute.</p>
+      </div>
+
+      <!-- Privacy Agreement -->
+      <div class="form-privacy">
+        <input type="checkbox" id="privacyAgree" name="privacy" required>
+        <label for="privacyAgree">
+          <span class="ja-only">個人情報の取り扱いに同意し、三晶プロダクションからのご連絡を受け取ることに同意します。</span>
+          <span class="en-only">I agree to the handling of my personal information and consent to receive communications from Mitsu Akira Production.</span>
+        </label>
+      </div>
+
+      <!-- Submit -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          <span class="ja-only">サポーター登録する</span>
+          <span class="en-only">Register as Supporter</span>
+        </button>
+        <button type="reset" class="btn btn-outline" onclick="resetForm()">
+          <span class="ja-only">入力をクリア</span>
+          <span class="en-only">Clear Form</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- Benefits -->
+    <div class="supporter-benefits reveal">
+      <div class="benefit-card">
+        <div class="benefit-icon">📰</div>
+        <h4 class="benefit-title ja-only">活動レポート</h4>
+        <h4 class="benefit-title en-only">Activity Reports</h4>
+        <p class="benefit-desc ja-only">コンテストや道場の活動報告をお届けします</p>
+        <p class="benefit-desc en-only">Receive updates on contests and dojo activities</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🎟️</div>
+        <h4 class="benefit-title ja-only">優先案内</h4>
+        <h4 class="benefit-title en-only">Priority Access</h4>
+        <p class="benefit-desc ja-only">公演やイベントの優先予約・割引</p>
+        <p class="benefit-desc en-only">Priority booking and discounts for events</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🏷️</div>
+        <h4 class="benefit-title ja-only">お名前掲載</h4>
+        <h4 class="benefit-title en-only">Name Recognition</h4>
+        <p class="benefit-desc ja-only">公式サイトにサポーターとしてお名前を掲載</p>
+        <p class="benefit-desc en-only">Your name listed on our official website</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🎭</div>
+        <h4 class="benefit-title ja-only">特別体験</h4>
+        <h4 class="benefit-title en-only">Exclusive Experience</h4>
+        <p class="benefit-desc ja-only">稽古見学や円左衛門との交流会</p>
+        <p class="benefit-desc en-only">Practice observation and meet the master</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ CONTACT ============ -->
 <section class="contact" id="contact">
   <div class="section-inner">
@@ -1400,6 +1846,7 @@
     <a href="#profile"><span class="ja-only">円左衛門</span><span class="en-only">Master</span></a>
     <a href="#contest"><span class="ja-only">コンテスト</span><span class="en-only">Contest</span></a>
     <a href="#dojo"><span class="ja-only">道場</span><span class="en-only">Dojo</span></a>
+    <a href="#supporter"><span class="ja-only">サポーター</span><span class="en-only">Supporter</span></a>
     <a href="#contact"><span class="ja-only">お問い合わせ</span><span class="en-only">Contact</span></a>
   </div>
   <p class="copyright">&copy; 2026 MITSU AKIRA PRODUCTION ─ Provisional Site</p>
@@ -1446,6 +1893,135 @@
       el.classList.add('visible');
     });
   });
+
+  // ============ Supporter Registration Logic ============
+
+  // Google Apps Script Web App URL
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxzKL2yWm5Q_Fj_Xbj7adaNhFbd6_VPalMW2gDLst_3-U8mfICs52Gju3RbwQHB_ovF3g/exec';
+
+  // Form submission handler
+  async function handleSupporterSubmit(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('supporterForm');
+    const messageEl = document.getElementById('formMessage');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const isJapanese = document.body.classList.contains('lang-ja');
+
+    // Validate required fields
+    const supportType = form.querySelector('input[name="supportType"]:checked');
+    const name = form.querySelector('#supporterName').value.trim();
+    const email = form.querySelector('#supporterEmail').value.trim();
+    const privacy = form.querySelector('#privacyAgree').checked;
+
+    // Clear previous messages
+    messageEl.className = 'form-message';
+    messageEl.textContent = '';
+
+    // Validation
+    if (!supportType) {
+      showFormMessage('error',
+        isJapanese ? 'サポート種別を選択してください。' : 'Please select a support type.');
+      return false;
+    }
+
+    if (!name) {
+      showFormMessage('error',
+        isJapanese ? 'お名前を入力してください。' : 'Please enter your name.');
+      return false;
+    }
+
+    if (!email || !isValidEmail(email)) {
+      showFormMessage('error',
+        isJapanese ? '有効なメールアドレスを入力してください。' : 'Please enter a valid email address.');
+      return false;
+    }
+
+    if (!privacy) {
+      showFormMessage('error',
+        isJapanese ? '個人情報の取り扱いに同意してください。' : 'Please agree to the privacy policy.');
+      return false;
+    }
+
+    // Collect form data
+    const formData = {
+      supportType: supportType.value,
+      name: name,
+      email: email,
+      phone: form.querySelector('#supporterPhone').value.trim(),
+      interest: form.querySelector('#supporterInterest').value,
+      message: form.querySelector('#supporterMessage').value.trim(),
+      language: isJapanese ? 'ja' : 'en'
+    };
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = isJapanese
+      ? '<span class="ja-only">送信中...</span>'
+      : '<span class="en-only">Submitting...</span>';
+
+    try {
+      // Send to Google Apps Script
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors', // GASはCORSをサポートしないため
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      // no-corsモードではレスポンスを読めないため、送信成功と見なす
+      // Show success message
+      showFormMessage('success',
+        isJapanese
+          ? 'サポーター登録ありがとうございます！ご登録を確認次第、ご連絡いたします。'
+          : 'Thank you for registering as a supporter! We will contact you shortly.');
+
+      // Reset form
+      form.reset();
+
+      // Scroll to message
+      messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    } catch (error) {
+      console.error('Registration error:', error);
+      showFormMessage('error',
+        isJapanese
+          ? '送信中にエラーが発生しました。しばらく経ってから再度お試しください。'
+          : 'An error occurred. Please try again later.');
+    } finally {
+      // Reset button state
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = isJapanese
+        ? '<span class="ja-only">サポーター登録する</span><span class="en-only">Register as Supporter</span>'
+        : '<span class="ja-only">サポーター登録する</span><span class="en-only">Register as Supporter</span>';
+    }
+
+    return false;
+  }
+
+  // Email validation
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  // Show form message
+  function showFormMessage(type, message) {
+    const messageEl = document.getElementById('formMessage');
+    messageEl.className = 'form-message ' + type;
+    messageEl.textContent = message;
+    messageEl.style.display = 'block';
+  }
+
+  // Reset form and clear message
+  function resetForm() {
+    const messageEl = document.getElementById('formMessage');
+    messageEl.className = 'form-message';
+    messageEl.textContent = '';
+    messageEl.style.display = 'none';
+  }
 </script>
 
 </body>
