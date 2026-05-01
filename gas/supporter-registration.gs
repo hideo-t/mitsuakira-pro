@@ -1182,6 +1182,88 @@ function getAllEvents() {
   return events;
 }
 
+// ===== 管理者用：会員一覧取得 =====
+function getMembers() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const members = [];
+
+  for (let i = 1; i < data.length; i++) {
+    members.push({
+      member_id: data[i][0],
+      name: data[i][1],
+      name_kana: data[i][2],
+      email: data[i][3],
+      email_verified: data[i][4],
+      phone: data[i][5],
+      region: data[i][8],
+      plan: data[i][10],
+      status: data[i][11],
+      event_count: data[i][12],
+      registered_at: data[i][14]
+    });
+  }
+
+  return members;
+}
+
+// ===== 管理者用：予約一覧取得 =====
+function getReservations(eventId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_RESERVATIONS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const reservations = [];
+
+  // イベント情報を取得（タイトルと日付を含めるため）
+  const eventsSheet = ss.getSheetByName(SHEET_EVENTS);
+  const eventsData = eventsSheet ? eventsSheet.getDataRange().getValues() : [];
+  const eventMap = {};
+  for (let i = 1; i < eventsData.length; i++) {
+    eventMap[eventsData[i][0]] = {
+      title: eventsData[i][1],
+      date: formatDate(eventsData[i][3])
+    };
+  }
+
+  for (let i = 1; i < data.length; i++) {
+    const resEventId = data[i][1];
+
+    // eventIdでフィルタリング（指定された場合）
+    if (eventId && resEventId !== eventId) continue;
+
+    const eventInfo = eventMap[resEventId] || { title: '不明', date: '' };
+
+    reservations.push({
+      reservation_id: data[i][0],
+      event_id: resEventId,
+      event_title: eventInfo.title,
+      event_date: eventInfo.date,
+      member_id: data[i][2],
+      name: data[i][3],
+      name_kana: data[i][4],
+      email: data[i][5],
+      email_verified: data[i][6],
+      phone: data[i][7],
+      party_size: data[i][8],
+      channel: data[i][9],
+      status: data[i][10],
+      is_member: data[i][11],
+      reserved_at: data[i][16],
+      confirmed_at: data[i][17],
+      notes: data[i][20]
+    });
+  }
+
+  // 予約日時で降順ソート
+  reservations.sort((a, b) => new Date(b.reserved_at || 0) - new Date(a.reserved_at || 0));
+  return reservations;
+}
+
 function updateEventReservedCount(eventId, addCount) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_EVENTS);

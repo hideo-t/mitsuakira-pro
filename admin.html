@@ -532,7 +532,7 @@
 </div>
 
 <script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzSZXy94XmARU2gNdqG0Fajqja47-O6tOma1qvmsbKyIP6JchIePkbf3kN9Az4f6xGImg/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyW7kihkn3xFk-9LQJIgOIIVxpvpdHFx-srOtqwNMKIF926nesmUQL9kkoiaH93N7XIvQ/exec';
 
   // Check session on load
   document.addEventListener('DOMContentLoaded', () => {
@@ -627,23 +627,23 @@
     document.getElementById('eventForm').style.display = 'block';
 
     if (eventData) {
-      document.getElementById('editEventId').value = eventData.id;
+      document.getElementById('editEventId').value = eventData.event_id || '';
       document.getElementById('eventTitle').value = eventData.title || '';
       document.getElementById('eventDate').value = eventData.date || '';
-      document.getElementById('eventOpenTime').value = eventData.openTime || '';
-      document.getElementById('eventStartTime').value = eventData.startTime || '';
-      document.getElementById('eventVenue').value = eventData.venue || '';
-      document.getElementById('eventAddress').value = eventData.address || '';
-      document.getElementById('eventVenueUrl').value = eventData.venueUrl || '';
-      document.getElementById('eventMapUrl').value = eventData.mapUrl || '';
-      document.getElementById('eventPrice').value = eventData.price || '';
+      document.getElementById('eventOpenTime').value = eventData.time_open || '';
+      document.getElementById('eventStartTime').value = eventData.time_start || '';
+      document.getElementById('eventVenue').value = eventData.venue_name || '';
+      document.getElementById('eventAddress').value = eventData.venue_address || '';
+      document.getElementById('eventVenueUrl').value = eventData.venue_access || '';
+      document.getElementById('eventMapUrl').value = '';
+      document.getElementById('eventPrice').value = eventData.price_general || '';
       document.getElementById('eventCapacity').value = eventData.capacity || '';
-      document.getElementById('eventPerformer').value = eventData.performer || '';
-      document.getElementById('eventProgram').value = eventData.program || '';
-      document.getElementById('eventContact').value = eventData.contact || '';
-      document.getElementById('eventSpecial').value = eventData.special || '';
+      document.getElementById('eventPerformer').value = eventData.description || '';
+      document.getElementById('eventProgram').value = eventData.price_includes || '';
+      document.getElementById('eventContact').value = '';
+      document.getElementById('eventSpecial').value = '';
       document.getElementById('eventStatus').value = eventData.status || 'draft';
-      document.getElementById('eventImageUrl').value = eventData.imageUrl || '';
+      document.getElementById('eventImageUrl').value = eventData.image_url || '';
       previewImage();
     } else {
       clearEventForm();
@@ -708,21 +708,20 @@
       adminPassword: session.password,
       eventId: document.getElementById('editEventId').value,
       title: document.getElementById('eventTitle').value,
+      description: document.getElementById('eventPerformer').value,
       date: document.getElementById('eventDate').value,
-      openTime: document.getElementById('eventOpenTime').value,
-      startTime: document.getElementById('eventStartTime').value,
-      venue: document.getElementById('eventVenue').value,
-      address: document.getElementById('eventAddress').value,
-      venueUrl: document.getElementById('eventVenueUrl').value,
-      mapUrl: document.getElementById('eventMapUrl').value,
-      price: document.getElementById('eventPrice').value,
+      timeOpen: document.getElementById('eventOpenTime').value,
+      timeStart: document.getElementById('eventStartTime').value,
+      timeEnd: '',
+      venueName: document.getElementById('eventVenue').value,
+      venueAddress: document.getElementById('eventAddress').value,
+      venueAccess: document.getElementById('eventVenueUrl').value,
       capacity: document.getElementById('eventCapacity').value,
-      performer: document.getElementById('eventPerformer').value,
-      program: document.getElementById('eventProgram').value,
-      contact: document.getElementById('eventContact').value,
-      special: document.getElementById('eventSpecial').value,
-      imageUrl: document.getElementById('eventImageUrl').value,
-      status: document.getElementById('eventStatus').value
+      priceGeneral: document.getElementById('eventPrice').value,
+      priceMember: '',
+      priceIncludes: document.getElementById('eventProgram').value,
+      status: document.getElementById('eventStatus').value,
+      imageUrl: document.getElementById('eventImageUrl').value
     };
 
     try {
@@ -754,12 +753,23 @@
     // For now, show placeholder - will load from GAS
     try {
       const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+      console.log('loadEvents - Session:', session);
+      if (!session.email || !session.password) {
+        listEl.innerHTML = '<div class="no-events">ログインしてください</div>';
+        return;
+      }
 
-      // Fetch events via script tag (JSONP-like) since no-cors doesn't return data
-      const response = await fetch(`${GAS_URL}?action=getEvents&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`);
+      const eventsUrl = `${GAS_URL}?action=getEvents&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
+      console.log('Fetching events from:', eventsUrl);
+      const response = await fetch(eventsUrl, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      console.log('Events response:', response.status, response.ok);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Events data:', data);
         if (data.events && data.events.length > 0) {
           renderEventList(data.events);
         } else {
@@ -769,6 +779,7 @@
         listEl.innerHTML = '<div class="no-events">イベント一覧を取得できませんでした</div>';
       }
     } catch (error) {
+      console.error('loadEvents error:', error);
       listEl.innerHTML = '<div class="no-events">イベント一覧を取得できませんでした</div>';
     }
   }
@@ -778,9 +789,9 @@
     listEl.innerHTML = events.map(ev => `
       <div class="event-item">
         <div class="event-info">
-          <span class="event-id">${ev.id}</span>
+          <span class="event-id">${ev.event_id}</span>
           <h4>${ev.title}</h4>
-          <p>${ev.date} ${ev.startTime} / ${ev.venue}</p>
+          <p>${ev.date} ${ev.time_start} / ${ev.venue_name}</p>
         </div>
         <div class="event-actions">
           <button class="btn btn-outline" onclick='showEventForm(${JSON.stringify(ev)})'>編集</button>
@@ -795,25 +806,40 @@
 
     try {
       const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
-      const response = await fetch(`${GAS_URL}?action=getSupporters&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`);
-
+      console.log('Session data:', session);
+      if (!session.email || !session.password) {
+        listEl.innerHTML = '<div class="no-events">ログインしてください</div>';
+        return;
+      }
+      const membersUrl = `${GAS_URL}?action=getMembers&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
+      console.log('Fetching members from:', membersUrl);
+      const response = await fetch(membersUrl, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      console.log('Response status:', response.status, response.ok);
       if (response.ok) {
         const data = await response.json();
-        if (data.supporters && data.supporters.length > 0) {
-          listEl.innerHTML = data.supporters.map(s => `
+        console.log('Members data:', data);
+        if (data.members && data.members.length > 0) {
+          listEl.innerHTML = data.members.map(s => `
             <div class="event-item">
               <div class="event-info">
-                <span class="event-id">${s.memberNumber || '-'}</span>
+                <span class="event-id">${s.member_id || '-'}</span>
                 <h4>${s.name || '(未登録)'}</h4>
-                <p>${s.email} / ${s.supportType || '-'} / ${s.status}</p>
+                <p>${s.email || ''} / ${s.plan || '-'} / ${s.status || ''}</p>
               </div>
             </div>
           `).join('');
         } else {
           listEl.innerHTML = '<div class="no-events">サポーターがいません</div>';
         }
+      } else {
+        console.error('Response not ok:', response.status);
+        listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
       }
     } catch (error) {
+      console.error('Load supporters error:', error);
       listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
     }
   }
@@ -829,7 +855,7 @@
         const data = await response.json();
         if (data.events && data.events.length > 0) {
           select.innerHTML = '<option value="">すべてのイベント</option>' +
-            data.events.map(ev => `<option value="${ev.id}">${ev.title} (${ev.date})</option>`).join('');
+            data.events.map(ev => `<option value="${ev.event_id}">${ev.title} (${ev.date})</option>`).join('');
         }
       }
     } catch (error) {
@@ -837,7 +863,7 @@
     }
   }
 
-  // Load applications
+  // Load applications (reservations)
   async function loadApplications() {
     const listEl = document.getElementById('applicationList');
     const eventId = document.getElementById('filterEventId').value;
@@ -845,30 +871,41 @@
 
     try {
       const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
-      let url = `${GAS_URL}?action=getApplications&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
+      console.log('Session data:', session);
+      if (!session.email || !session.password) {
+        listEl.innerHTML = '<div class="no-events">ログインしてください</div>';
+        return;
+      }
+      let url = `${GAS_URL}?action=getReservations&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
       if (eventId) {
         url += `&eventId=${encodeURIComponent(eventId)}`;
       }
 
-      const response = await fetch(url);
+      console.log('Fetching reservations from:', url);
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow'
+      });
+      console.log('Response status:', response.status, response.ok);
       if (response.ok) {
         const data = await response.json();
-        if (data.applications && data.applications.length > 0) {
-          listEl.innerHTML = data.applications.map(app => `
+        console.log('Reservations data:', data);
+        if (data.reservations && data.reservations.length > 0) {
+          listEl.innerHTML = data.reservations.map(res => `
             <div class="event-item">
               <div class="event-info">
-                <span class="event-id">${app.applicationId}</span>
-                <h4>${app.name || app.memberNumber || '(名前なし)'}</h4>
+                <span class="event-id">${res.reservation_id || ''}</span>
+                <h4>${res.name || res.member_id || '(名前なし)'}</h4>
                 <p>
-                  <strong>${app.eventTitle}</strong> (${app.eventDate})<br>
-                  ${app.method} / ${app.attendees}名 / ${app.email}<br>
-                  ${app.phone ? `TEL: ${app.phone}` : ''}
-                  ${app.notes ? `<br>備考: ${app.notes}` : ''}
+                  <strong>${res.event_title || res.event_id || ''}</strong> ${res.event_date ? `(${res.event_date})` : ''}<br>
+                  ${res.channel || 'web'} / ${res.party_size || 1}名 / ${res.email || ''}<br>
+                  ${res.phone ? `TEL: ${res.phone}` : ''}
+                  ${res.notes ? `<br>備考: ${res.notes}` : ''}
                 </p>
               </div>
               <div class="event-actions">
-                <span style="font-size: 12px; color: ${app.status === '受付済' ? '#2A5C3D' : '#666'};">
-                  ${app.status}
+                <span style="font-size: 12px; color: ${res.status === 'confirmed' ? '#2A5C3D' : '#666'};">
+                  ${res.status === 'confirmed' ? '確定' : res.status === 'pending' ? '仮予約' : res.status || ''}
                 </span>
               </div>
             </div>
@@ -876,8 +913,12 @@
         } else {
           listEl.innerHTML = '<div class="no-events">申込がありません</div>';
         }
+      } else {
+        console.error('Response not ok:', response.status);
+        listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
       }
     } catch (error) {
+      console.error('Load applications error:', error);
       listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
     }
   }
