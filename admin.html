@@ -473,6 +473,19 @@
         </div>
       </div>
 
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventImageUrl">イベント画像URL</label>
+          <input type="url" id="eventImageUrl" placeholder="https://example.com/image.jpg" onchange="previewImage()">
+          <div id="imagePreview" style="margin-top: 10px; display: none;">
+            <img id="previewImg" style="max-width: 300px; max-height: 200px; border: 1px solid rgba(26,40,64,0.2);">
+          </div>
+          <p style="font-size: 12px; color: var(--color-sumi-light); margin-top: 8px;">
+            Google Drive、Imgur等にアップロードした画像の共有URLを入力してください
+          </p>
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="eventStatus">公開状態</label>
         <select id="eventStatus">
@@ -630,8 +643,26 @@
       document.getElementById('eventContact').value = eventData.contact || '';
       document.getElementById('eventSpecial').value = eventData.special || '';
       document.getElementById('eventStatus').value = eventData.status || 'draft';
+      document.getElementById('eventImageUrl').value = eventData.imageUrl || '';
+      previewImage();
     } else {
       clearEventForm();
+    }
+  }
+
+  function previewImage() {
+    const url = document.getElementById('eventImageUrl').value;
+    const previewDiv = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+
+    if (url) {
+      previewImg.src = url;
+      previewDiv.style.display = 'block';
+      previewImg.onerror = () => {
+        previewDiv.style.display = 'none';
+      };
+    } else {
+      previewDiv.style.display = 'none';
     }
   }
 
@@ -657,6 +688,8 @@
     document.getElementById('eventContact').value = '';
     document.getElementById('eventSpecial').value = '';
     document.getElementById('eventStatus').value = 'draft';
+    document.getElementById('eventImageUrl').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
     document.getElementById('eventSuccess').style.display = 'none';
     document.getElementById('eventError').style.display = 'none';
   }
@@ -688,6 +721,7 @@
       program: document.getElementById('eventProgram').value,
       contact: document.getElementById('eventContact').value,
       special: document.getElementById('eventSpecial').value,
+      imageUrl: document.getElementById('eventImageUrl').value,
       status: document.getElementById('eventStatus').value
     };
 

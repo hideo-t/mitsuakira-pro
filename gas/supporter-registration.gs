@@ -663,9 +663,9 @@ function saveEvent(data) {
     sheet.appendRow([
       'イベントID', '作成日', 'ステータス', 'イベント名', '開催日', '開場', '開演',
       '会場名', '住所', '会場URL', '地図URL', '料金', '定員',
-      '出演者', '演目', '連絡先', '特典・備考', '更新日'
+      '出演者', '演目', '連絡先', '特典・備考', '画像URL', '更新日'
     ]);
-    sheet.getRange(1, 1, 1, 18).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
   }
 
@@ -692,7 +692,8 @@ function saveEvent(data) {
         sheet.getRange(row, 15).setValue(data.program);
         sheet.getRange(row, 16).setValue(data.contact);
         sheet.getRange(row, 17).setValue(data.special);
-        sheet.getRange(row, 18).setValue(now);
+        sheet.getRange(row, 18).setValue(data.imageUrl || '');
+        sheet.getRange(row, 19).setValue(now);
         return { success: true, message: 'Event updated', eventId: data.eventId };
       }
     }
@@ -718,6 +719,7 @@ function saveEvent(data) {
       data.program,
       data.contact,
       data.special,
+      data.imageUrl || '',
       now
     ]);
     return { success: true, message: 'Event created', eventId: eventId };
@@ -794,7 +796,8 @@ function getEvents() {
       program: data[i][14],
       contact: data[i][15],
       special: data[i][16],
-      updatedAt: data[i][17]
+      imageUrl: data[i][17] || '',
+      updatedAt: data[i][18]
     });
   }
 
