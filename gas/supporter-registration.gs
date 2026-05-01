@@ -769,7 +769,7 @@ function getPublicEvents() {
 
   for (let i = 1; i < data.length; i++) {
     const status = data[i][18];
-    if (status === 'open' || status === 'full') {
+    if (status === 'open' || status === 'full' || status === 'published') {
       const eventDate = new Date(data[i][3]);
       if (eventDate >= now) {
         events.push({
