@@ -244,35 +244,47 @@ function submitReservation(data) {
 
   // 会員登録も希望する場合、membersにも仮登録
   if (data.wantsToRegister && !isMember) {
-    registerPendingMember({
-      name: data.name,
-      nameKana: data.nameKana,
-      email: data.email,
-      phone: data.phone,
-      token: token,
-      tokenExpiry: tokenExpiry
-    });
+    try {
+      registerPendingMember({
+        name: data.name,
+        nameKana: data.nameKana,
+        email: data.email,
+        phone: data.phone,
+        token: token,
+        tokenExpiry: tokenExpiry
+      });
+    } catch (e) {
+      console.error('registerPendingMember error:', e);
+    }
   }
 
   // 確認メールを送信
-  sendReservationConfirmationEmail({
-    reservationId: reservationId,
-    name: data.name,
-    email: data.email,
-    eventTitle: eventInfo.title,
-    eventDate: eventInfo.date,
-    eventTime: eventInfo.time_start,
-    venueName: eventInfo.venue_name,
-    partySize: data.partySize,
-    price: priceApplied * data.partySize,
-    isMember: isMember,
-    wantsToRegister: data.wantsToRegister,
-    token: token,
-    language: data.language || 'ja'
-  });
+  try {
+    const priceNum = parseInt(priceApplied) || 0;
+    const partySizeNum = parseInt(data.partySize) || 1;
 
-  // メール送信ログ
-  logEmail(data.email, data.name, '【三晶プロダクション】お申し込み確認', 'reservation_confirm', reservationId, 'sent');
+    sendReservationConfirmationEmail({
+      reservationId: reservationId,
+      name: data.name,
+      email: data.email,
+      eventTitle: eventInfo.title,
+      eventDate: eventInfo.date,
+      eventTime: eventInfo.time_start || '',
+      venueName: eventInfo.venue_name || '',
+      partySize: partySizeNum,
+      price: priceNum * partySizeNum,
+      isMember: isMember,
+      wantsToRegister: data.wantsToRegister,
+      token: token,
+      language: data.language || 'ja'
+    });
+
+    // メール送信ログ
+    logEmail(data.email, data.name, '【三晶プロダクション】お申し込み確認', 'reservation_confirm', reservationId, 'sent');
+  } catch (e) {
+    console.error('Email send error:', e);
+    logEmail(data.email, data.name, '【三晶プロダクション】お申し込み確認', 'reservation_confirm', reservationId, 'error: ' + e.toString());
+  }
 
   return {
     success: true,
