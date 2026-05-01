@@ -126,28 +126,28 @@ function sendVerificationEmail(email, language) {
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
     sheet.appendRow([
-      '登録ID', '登録日時', 'ステータス', 'メールアドレス', '認証トークン', 'トークン有効期限',
+      '登録ID', '会員番号', '登録日時', 'ステータス', 'メールアドレス', '認証トークン', 'トークン有効期限',
       'サポート種別', '名前', '電話番号', '関心分野', 'メッセージ', '言語', '認証日時', '登録完了日時'
     ]);
-    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
   }
 
   // 既存の未認証レコードをチェック
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][3] === email && data[i][2] === '未認証') {
+    if (data[i][4] === email && data[i][3] === '未認証') {
       // 既存の未認証レコードがある場合、トークンを再生成
       const newToken = generateToken();
       const newExpiry = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
-      sheet.getRange(i + 1, 5).setValue(newToken);
-      sheet.getRange(i + 1, 6).setValue(newExpiry);
+      sheet.getRange(i + 1, 6).setValue(newToken);
+      sheet.getRange(i + 1, 7).setValue(newExpiry);
 
       sendVerificationMail(email, newToken, language);
       return { success: true, message: 'Verification email resent' };
     }
-    if (data[i][3] === email && (data[i][2] === '認証済み' || data[i][2] === '登録完了')) {
+    if (data[i][4] === email && (data[i][3] === '認証済み' || data[i][3] === '登録完了')) {
       return { success: false, message: 'Email already registered', code: 'ALREADY_REGISTERED' };
     }
   }
@@ -160,6 +160,7 @@ function sendVerificationEmail(email, language) {
 
   sheet.appendRow([
     registrationId,
+    '',  // 会員番号（登録完了時に発行）
     timestamp,
     '未認証',
     email,
@@ -192,10 +193,10 @@ function verifyEmail(token) {
   const now = new Date();
 
   for (let i = 1; i < data.length; i++) {
-    if (data[i][4] === token) {
-      const expiry = new Date(data[i][5]);
-      const status = data[i][2];
-      const email = data[i][3];
+    if (data[i][5] === token) {
+      const expiry = new Date(data[i][6]);
+      const status = data[i][3];
+      const email = data[i][4];
 
       if (status === '登録完了') {
         return { success: false, message: '既に登録が完了しています。' };
@@ -210,8 +211,8 @@ function verifyEmail(token) {
       }
 
       // 認証成功 - ステータスを更新
-      sheet.getRange(i + 1, 3).setValue('認証済み');
-      sheet.getRange(i + 1, 13).setValue(Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
+      sheet.getRange(i + 1, 4).setValue('認証済み');
+      sheet.getRange(i + 1, 14).setValue(Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
 
       return { success: true, email: email, message: 'Email verified' };
     }
@@ -234,8 +235,8 @@ function completeRegistration(data) {
   const sheetData = sheet.getDataRange().getValues();
 
   for (let i = 1; i < sheetData.length; i++) {
-    if (sheetData[i][4] === data.token && sheetData[i][3] === data.email) {
-      const status = sheetData[i][2];
+    if (sheetData[i][5] === data.token && sheetData[i][4] === data.email) {
+      const status = sheetData[i][3];
 
       if (status !== '認証済み') {
         return { success: false, message: 'Email not verified or already completed' };
@@ -257,25 +258,29 @@ function completeRegistration(data) {
         'international': '海外展開'
       };
 
+      // 会員番号を発行
+      const memberNumber = generateMemberNumber(sheet);
+
       // 詳細情報を更新
       const row = i + 1;
-      sheet.getRange(row, 3).setValue('登録完了');
-      sheet.getRange(row, 7).setValue(supportTypeMap[data.supportType] || data.supportType);
-      sheet.getRange(row, 8).setValue(data.name);
-      sheet.getRange(row, 9).setValue(data.phone || '');
-      sheet.getRange(row, 10).setValue(interestMap[data.interest] || data.interest || '');
-      sheet.getRange(row, 11).setValue(data.message || '');
-      sheet.getRange(row, 14).setValue(Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
+      sheet.getRange(row, 2).setValue(memberNumber);  // 会員番号
+      sheet.getRange(row, 4).setValue('登録完了');
+      sheet.getRange(row, 8).setValue(supportTypeMap[data.supportType] || data.supportType);
+      sheet.getRange(row, 9).setValue(data.name);
+      sheet.getRange(row, 10).setValue(data.phone || '');
+      sheet.getRange(row, 11).setValue(interestMap[data.interest] || data.interest || '');
+      sheet.getRange(row, 12).setValue(data.message || '');
+      sheet.getRange(row, 15).setValue(Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss'));
 
       // 登録完了メールを送信
-      sendCompletionEmail(data.email, data.name, sheetData[i][0], data.language || 'ja');
+      sendCompletionEmail(data.email, data.name, memberNumber, sheetData[i][0], data.language || 'ja');
 
       // 管理者通知
       if (NOTIFICATION_EMAIL) {
-        sendAdminNotification(data, sheetData[i][0]);
+        sendAdminNotification(data, sheetData[i][0], memberNumber);
       }
 
-      return { success: true, message: 'Registration completed', registrationId: sheetData[i][0] };
+      return { success: true, message: 'Registration completed', registrationId: sheetData[i][0], memberNumber: memberNumber };
     }
   }
 
@@ -341,12 +346,12 @@ ${SITE_URL}
 /**
  * 登録完了メールを送信
  */
-function sendCompletionEmail(email, name, registrationId, language) {
+function sendCompletionEmail(email, name, memberNumber, registrationId, language) {
   const isJapanese = language === 'ja';
 
   const subject = isJapanese
-    ? '【三晶プロダクション】サポーター登録完了のお知らせ'
-    : '【Mitsu Akira Production】Supporter Registration Confirmed';
+    ? `【三晶プロダクション】サポーター登録完了 - 会員番号: ${memberNumber}`
+    : `【Mitsu Akira Production】Registration Complete - Member No: ${memberNumber}`;
 
   const body = isJapanese
     ? `
@@ -356,13 +361,17 @@ ${name} 様
 誠にありがとうございます。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 登録情報
+■ 会員情報
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-登録ID: ${registrationId}
-メールアドレス: ${email}
+  会員番号: ${memberNumber}
+  登録ID: ${registrationId}
+  メールアドレス: ${email}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+上記の会員番号は、今後のお問い合わせやイベント参加時に
+ご利用いただく場合がございます。大切に保管してください。
 
 今後、以下のような情報をお届けいたします：
 
@@ -390,13 +399,17 @@ Dear ${name},
 Thank you for registering as a supporter of Mitsu Akira Production.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ Registration Details
+■ Member Information
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Registration ID: ${registrationId}
-Email: ${email}
+  Member Number: ${memberNumber}
+  Registration ID: ${registrationId}
+  Email: ${email}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Please keep your member number safe. You may need it
+for inquiries or event participation.
 
 As a supporter, you will receive:
 
@@ -425,14 +438,14 @@ Fukushima 961-0905, Japan
 /**
  * 管理者通知メールを送信
  */
-function sendAdminNotification(data, registrationId) {
+function sendAdminNotification(data, registrationId, memberNumber) {
   const supportTypeMap = {
     'personal': '個人サポーター',
     'corporate': '法人・企業',
     'volunteer': 'ボランティア'
   };
 
-  const subject = `【三晶プロダクション】新規サポーター登録完了: ${data.name}`;
+  const subject = `【三晶プロダクション】新規サポーター登録: ${memberNumber} ${data.name}`;
 
   const body = `
 新しいサポーター登録が完了しました。
@@ -441,6 +454,7 @@ function sendAdminNotification(data, registrationId) {
 ■ 登録情報
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+会員番号: ${memberNumber}
 登録ID: ${registrationId}
 サポート種別: ${supportTypeMap[data.supportType] || data.supportType}
 お名前: ${data.name}
@@ -458,6 +472,29 @@ https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}
 `;
 
   GmailApp.sendEmail(NOTIFICATION_EMAIL, subject, body);
+}
+
+/**
+ * 会員番号を生成
+ */
+function generateMemberNumber(sheet) {
+  const data = sheet.getDataRange().getValues();
+  let maxNumber = 0;
+
+  // 既存の会員番号から最大値を取得
+  for (let i = 1; i < data.length; i++) {
+    const memberNum = data[i][1];  // 会員番号列
+    if (memberNum && typeof memberNum === 'string' && memberNum.startsWith('M-')) {
+      const num = parseInt(memberNum.substring(2), 10);
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+
+  // 次の番号を生成（4桁ゼロ埋め）
+  const nextNumber = maxNumber + 1;
+  return 'M-' + String(nextNumber).padStart(4, '0');
 }
 
 /**
