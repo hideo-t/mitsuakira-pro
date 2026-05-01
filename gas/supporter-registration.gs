@@ -69,8 +69,18 @@ function testEmailSend() {
 
 // ===== POSTリクエスト処理 =====
 function doPost(e) {
+  // デバッグログ
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let debugSheet = ss.getSheetByName('debug_log');
+  if (!debugSheet) {
+    debugSheet = ss.insertSheet('debug_log');
+    debugSheet.appendRow(['timestamp', 'action', 'data']);
+  }
+
   try {
     const data = JSON.parse(e.postData.contents);
+    debugSheet.appendRow([new Date(), data.action, JSON.stringify(data)]);
+
     let result;
 
     switch (data.action) {
