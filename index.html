@@ -1095,6 +1095,265 @@
     margin-top: 48px;
   }
 
+  /* ---------- Events section ---------- */
+  .events {
+    background: var(--color-base);
+  }
+
+  .events-loading {
+    text-align: center;
+    padding: 48px;
+    color: var(--color-sumi-light);
+  }
+
+  .events-grid {
+    display: grid;
+    gap: 32px;
+  }
+
+  .event-card {
+    background: white;
+    border: 1px solid rgba(26, 40, 64, 0.1);
+    overflow: hidden;
+    transition: box-shadow 0.3s;
+  }
+
+  .event-card:hover {
+    box-shadow: 0 8px 32px rgba(26, 40, 64, 0.1);
+  }
+
+  .event-card-header {
+    background: var(--color-edo);
+    color: var(--color-base);
+    padding: 20px 24px;
+  }
+
+  .event-card-date {
+    font-family: var(--en-serif);
+    font-size: 14px;
+    color: var(--color-gold);
+    margin-bottom: 8px;
+  }
+
+  .event-card-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.4;
+  }
+
+  .event-card-body {
+    padding: 24px;
+  }
+
+  .event-detail-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+
+  .event-detail-label {
+    color: var(--color-hi);
+    font-weight: 500;
+    min-width: 70px;
+    flex-shrink: 0;
+  }
+
+  .event-detail-value {
+    color: var(--color-edo);
+    line-height: 1.6;
+  }
+
+  .event-detail-value a {
+    color: var(--color-hi);
+    text-decoration: none;
+  }
+
+  .event-detail-value a:hover {
+    text-decoration: underline;
+  }
+
+  .event-special {
+    background: rgba(184, 134, 11, 0.1);
+    border-left: 3px solid var(--color-gold);
+    padding: 16px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--color-edo);
+    line-height: 1.7;
+  }
+
+  .event-card-footer {
+    padding: 0 24px 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-apply {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .no-events {
+    text-align: center;
+    padding: 64px 32px;
+    background: var(--color-base-deep);
+    border: 1px dashed rgba(26, 40, 64, 0.2);
+  }
+
+  .no-events-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .no-events-text {
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--color-sumi-light);
+  }
+
+  /* Event Application Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal {
+    background: white;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-header {
+    background: var(--color-edo);
+    color: var(--color-base);
+    padding: 20px 24px;
+    position: sticky;
+    top: 0;
+  }
+
+  .modal-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--color-base);
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+
+  .modal-close:hover {
+    opacity: 1;
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .apply-method-selector {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .apply-method-option {
+    position: relative;
+  }
+
+  .apply-method-option input {
+    position: absolute;
+    opacity: 0;
+  }
+
+  .apply-method-option label {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border: 2px solid rgba(26, 40, 64, 0.15);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .apply-method-option label:hover {
+    border-color: var(--color-hi);
+  }
+
+  .apply-method-option input:checked + label {
+    border-color: var(--color-hi);
+    background: rgba(139, 10, 26, 0.05);
+  }
+
+  .method-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .method-info {
+    flex: 1;
+  }
+
+  .method-name {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--color-edo);
+  }
+
+  .method-desc {
+    font-size: 12px;
+    color: var(--color-sumi-light);
+    margin-top: 4px;
+  }
+
+  .apply-form-fields {
+    display: none;
+  }
+
+  .apply-form-fields.active {
+    display: block;
+  }
+
+  .event-summary {
+    background: var(--color-base-deep);
+    padding: 16px;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  .event-summary-title {
+    font-weight: 700;
+    color: var(--color-edo);
+    margin-bottom: 8px;
+  }
+
+  .event-summary-info {
+    color: var(--color-sumi-light);
+  }
+
   @media (max-width: 500px) {
     .line-friend-box {
       flex-direction: column;
@@ -1551,6 +1810,7 @@
         <li><a href="#profile" class="ja-only">円左衛門</a><a href="#profile" class="en-only">Master</a></li>
         <li><a href="#contest" class="ja-only">コンテスト</a><a href="#contest" class="en-only">Contest</a></li>
         <li><a href="#dojo" class="ja-only">道場</a><a href="#dojo" class="en-only">Dojo</a></li>
+        <li><a href="#events" class="ja-only">イベント</a><a href="#events" class="en-only">Events</a></li>
         <li><a href="gallery.html" class="ja-only">写真集</a><a href="gallery.html" class="en-only">Gallery</a></li>
         <li><a href="#supporter" class="ja-only">サポーター</a><a href="#supporter" class="en-only">Supporter</a></li>
         <li><a href="#contact" class="ja-only">お問い合わせ</a><a href="#contact" class="en-only">Contact</a></li>
@@ -1811,6 +2071,176 @@
     </div>
   </div>
 </section>
+
+<!-- ============ EVENTS ============ -->
+<section class="events" id="events">
+  <div class="section-inner">
+    <p class="section-label reveal">Upcoming Events</p>
+    <h2 class="section-title reveal">
+      <span class="ja-only">イベント情報</span>
+      <span class="en-only">Event Information</span>
+    </h2>
+
+    <div class="events-grid" id="eventsGrid">
+      <div class="events-loading ja-only">イベント情報を読み込み中...</div>
+      <div class="events-loading en-only">Loading events...</div>
+    </div>
+  </div>
+</section>
+
+<!-- Event Application Modal -->
+<div class="modal-overlay" id="applyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title ja-only">イベント申し込み</h3>
+      <h3 class="modal-title en-only">Event Application</h3>
+      <button class="modal-close" onclick="closeApplyModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="event-summary" id="applyEventSummary">
+        <div class="event-summary-title" id="applyEventTitle"></div>
+        <div class="event-summary-info" id="applyEventInfo"></div>
+      </div>
+
+      <input type="hidden" id="applyEventId">
+
+      <!-- 申し込み方法選択 -->
+      <div class="apply-method-selector" id="methodSelector">
+        <p style="font-weight: 500; margin-bottom: 12px;" class="ja-only">申し込み方法を選択</p>
+        <p style="font-weight: 500; margin-bottom: 12px;" class="en-only">Select Application Method</p>
+
+        <div class="apply-method-option">
+          <input type="radio" name="applyMethod" id="methodLine" value="line">
+          <label for="methodLine">
+            <span class="method-icon">💬</span>
+            <div class="method-info">
+              <div class="method-name ja-only">LINE で申し込む</div>
+              <div class="method-name en-only">Apply via LINE</div>
+              <div class="method-desc ja-only">公式LINEから簡単に申し込み</div>
+              <div class="method-desc en-only">Quick application via official LINE</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="apply-method-option">
+          <input type="radio" name="applyMethod" id="methodMember" value="member">
+          <label for="methodMember">
+            <span class="method-icon">⭐</span>
+            <div class="method-info">
+              <div class="method-name ja-only">サポーター会員として申し込む</div>
+              <div class="method-name en-only">Apply as Supporter Member</div>
+              <div class="method-desc ja-only">会員番号をお持ちの方・優先予約</div>
+              <div class="method-desc en-only">For members with member number - Priority</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="apply-method-option">
+          <input type="radio" name="applyMethod" id="methodGuest" value="guest">
+          <label for="methodGuest">
+            <span class="method-icon">👤</span>
+            <div class="method-info">
+              <div class="method-name ja-only">一般申し込み</div>
+              <div class="method-name en-only">General Application</div>
+              <div class="method-desc ja-only">会員登録なしでお申し込み</div>
+              <div class="method-desc en-only">Apply without registration</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- サポーター会員フォーム -->
+      <div class="apply-form-fields" id="formMember">
+        <div class="form-message" id="memberFormMessage"></div>
+        <div class="form-group">
+          <label class="ja-only">会員番号 *</label>
+          <label class="en-only">Member Number *</label>
+          <input type="text" id="memberNumber" placeholder="M-0001">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">登録メールアドレス *</label>
+          <label class="en-only">Registered Email *</label>
+          <input type="email" id="memberEmail" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">参加人数</label>
+          <label class="en-only">Number of Attendees</label>
+          <select id="memberAttendees">
+            <option value="1">1名</option>
+            <option value="2">2名</option>
+            <option value="3">3名</option>
+            <option value="4">4名</option>
+            <option value="5">5名以上</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="ja-only">備考</label>
+          <label class="en-only">Notes</label>
+          <textarea id="memberNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
+        </div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="submitMemberApplication()">
+          <span class="ja-only">申し込む</span>
+          <span class="en-only">Submit Application</span>
+        </button>
+      </div>
+
+      <!-- 一般申し込みフォーム -->
+      <div class="apply-form-fields" id="formGuest">
+        <div class="form-message" id="guestFormMessage"></div>
+        <div class="form-group">
+          <label class="ja-only">お名前 *</label>
+          <label class="en-only">Name *</label>
+          <input type="text" id="guestName" placeholder="山田 太郎">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">メールアドレス *</label>
+          <label class="en-only">Email *</label>
+          <input type="email" id="guestEmail" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">電話番号</label>
+          <label class="en-only">Phone</label>
+          <input type="tel" id="guestPhone" placeholder="090-1234-5678">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">参加人数</label>
+          <label class="en-only">Number of Attendees</label>
+          <select id="guestAttendees">
+            <option value="1">1名</option>
+            <option value="2">2名</option>
+            <option value="3">3名</option>
+            <option value="4">4名</option>
+            <option value="5">5名以上</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="ja-only">備考</label>
+          <label class="en-only">Notes</label>
+          <textarea id="guestNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
+        </div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="submitGuestApplication()">
+          <span class="ja-only">申し込む</span>
+          <span class="en-only">Submit Application</span>
+        </button>
+      </div>
+
+      <!-- 申し込み完了 -->
+      <div class="apply-form-fields" id="formComplete">
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+          <h4 class="ja-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">お申し込みを受け付けました</h4>
+          <h4 class="en-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">Application Received</h4>
+          <p class="ja-only" style="color: var(--color-sumi-light); font-size: 14px;">確認メールをお送りしました。<br>当日のご来場をお待ちしております。</p>
+          <p class="en-only" style="color: var(--color-sumi-light); font-size: 14px;">A confirmation email has been sent.<br>We look forward to seeing you!</p>
+          <button class="btn btn-outline" style="margin-top: 24px;" onclick="closeApplyModal()">
+            <span class="ja-only">閉じる</span>
+            <span class="en-only">Close</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ SUPPORTER ============ -->
 <section class="supporter" id="supporter">
@@ -2449,6 +2879,267 @@
     messageEl.textContent = message;
     messageEl.style.display = 'block';
   }
+
+  // ============ Events Display and Application ============
+
+  // Load public events on page load
+  document.addEventListener('DOMContentLoaded', loadPublicEvents);
+
+  async function loadPublicEvents() {
+    const grid = document.getElementById('eventsGrid');
+    const isJapanese = document.body.classList.contains('lang-ja');
+
+    try {
+      const response = await fetch(`${GAS_URL}?action=getPublicEvents`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.events && data.events.length > 0) {
+          renderEvents(data.events);
+        } else {
+          grid.innerHTML = `
+            <div class="no-events">
+              <div class="no-events-icon">🎭</div>
+              <p class="no-events-text ja-only">現在予定されているイベントはありません</p>
+              <p class="no-events-text en-only">No upcoming events at this time</p>
+            </div>
+          `;
+        }
+      } else {
+        throw new Error('Failed to load');
+      }
+    } catch (error) {
+      grid.innerHTML = `
+        <div class="no-events">
+          <div class="no-events-icon">🎭</div>
+          <p class="no-events-text ja-only">イベント情報を取得できませんでした</p>
+          <p class="no-events-text en-only">Could not load event information</p>
+        </div>
+      `;
+    }
+  }
+
+  function renderEvents(events) {
+    const grid = document.getElementById('eventsGrid');
+    const isJapanese = document.body.classList.contains('lang-ja');
+
+    grid.innerHTML = events.map(ev => {
+      const dateObj = new Date(ev.date);
+      const dateStr = isJapanese
+        ? `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`
+        : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      return `
+        <div class="event-card">
+          <div class="event-card-header">
+            <div class="event-card-date">${dateStr} ${ev.startTime || ''}</div>
+            <h3 class="event-card-title">${ev.title}</h3>
+          </div>
+          <div class="event-card-body">
+            ${ev.openTime ? `
+              <div class="event-detail-row">
+                <span class="event-detail-label">${isJapanese ? '時間' : 'Time'}</span>
+                <span class="event-detail-value">${isJapanese ? '開場' : 'Open'} ${ev.openTime} / ${isJapanese ? '開演' : 'Start'} ${ev.startTime}</span>
+              </div>
+            ` : ''}
+            <div class="event-detail-row">
+              <span class="event-detail-label">${isJapanese ? '会場' : 'Venue'}</span>
+              <span class="event-detail-value">
+                ${ev.venue}${ev.address ? `<br>${ev.address}` : ''}
+                ${ev.venueUrl ? `<br><a href="${ev.venueUrl}" target="_blank">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
+              </span>
+            </div>
+            ${ev.price ? `
+              <div class="event-detail-row">
+                <span class="event-detail-label">${isJapanese ? '料金' : 'Price'}</span>
+                <span class="event-detail-value">${ev.price}</span>
+              </div>
+            ` : ''}
+            <div class="event-detail-row">
+              <span class="event-detail-label">${isJapanese ? '出演' : 'Performer'}</span>
+              <span class="event-detail-value">${ev.performer}</span>
+            </div>
+            ${ev.program ? `
+              <div class="event-detail-row">
+                <span class="event-detail-label">${isJapanese ? '演目' : 'Program'}</span>
+                <span class="event-detail-value">${ev.program.replace(/\n/g, '<br>')}</span>
+              </div>
+            ` : ''}
+            ${ev.mapUrl ? `
+              <div class="event-detail-row">
+                <span class="event-detail-label">${isJapanese ? '地図' : 'Map'}</span>
+                <span class="event-detail-value"><a href="${ev.mapUrl}" target="_blank">${isJapanese ? 'Google Map で見る' : 'View on Google Maps'}</a></span>
+              </div>
+            ` : ''}
+            ${ev.special ? `
+              <div class="event-special">${ev.special.replace(/\n/g, '<br>')}</div>
+            ` : ''}
+          </div>
+          <div class="event-card-footer">
+            <button class="btn btn-primary btn-apply" onclick='openApplyModal(${JSON.stringify(ev)})'>
+              <span class="ja-only">申し込む</span>
+              <span class="en-only">Apply</span>
+            </button>
+            ${ev.mapUrl ? `
+              <a href="${ev.mapUrl}" target="_blank" class="btn btn-outline">
+                <span class="ja-only">地図</span>
+                <span class="en-only">Map</span>
+              </a>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Application Modal
+  let currentEvent = null;
+
+  function openApplyModal(event) {
+    currentEvent = event;
+    const isJapanese = document.body.classList.contains('lang-ja');
+
+    document.getElementById('applyEventId').value = event.id;
+    document.getElementById('applyEventTitle').textContent = event.title;
+
+    const dateObj = new Date(event.date);
+    const dateStr = isJapanese
+      ? `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${event.startTime || ''}`
+      : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' ' + (event.startTime || '');
+    document.getElementById('applyEventInfo').textContent = `${dateStr} @ ${event.venue}`;
+
+    // Reset form
+    document.getElementById('methodSelector').style.display = 'block';
+    document.querySelectorAll('.apply-form-fields').forEach(f => f.classList.remove('active'));
+    document.querySelectorAll('input[name="applyMethod"]').forEach(r => r.checked = false);
+
+    document.getElementById('applyModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeApplyModal() {
+    document.getElementById('applyModal').classList.remove('active');
+    document.body.style.overflow = '';
+    currentEvent = null;
+  }
+
+  // Method selection
+  document.querySelectorAll('input[name="applyMethod"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      const method = this.value;
+
+      document.querySelectorAll('.apply-form-fields').forEach(f => f.classList.remove('active'));
+
+      if (method === 'line') {
+        // Redirect to LINE
+        window.open('https://lin.ee/zMR1NuAF', '_blank');
+        closeApplyModal();
+      } else if (method === 'member') {
+        document.getElementById('formMember').classList.add('active');
+      } else if (method === 'guest') {
+        document.getElementById('formGuest').classList.add('active');
+      }
+    });
+  });
+
+  // Submit member application
+  async function submitMemberApplication() {
+    const isJapanese = document.body.classList.contains('lang-ja');
+    const memberNumber = document.getElementById('memberNumber').value.trim();
+    const email = document.getElementById('memberEmail').value.trim();
+    const attendees = document.getElementById('memberAttendees').value;
+    const notes = document.getElementById('memberNotes').value.trim();
+
+    if (!memberNumber || !email) {
+      showMessage('memberFormMessage', 'error',
+        isJapanese ? '会員番号とメールアドレスを入力してください' : 'Please enter member number and email');
+      return;
+    }
+
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'applyEvent',
+          eventId: currentEvent.id,
+          eventTitle: currentEvent.title,
+          eventDate: currentEvent.date,
+          eventVenue: currentEvent.venue,
+          applyMethod: 'member',
+          memberNumber: memberNumber,
+          email: email,
+          attendees: attendees,
+          notes: notes,
+          language: isJapanese ? 'ja' : 'en'
+        })
+      });
+
+      document.getElementById('methodSelector').style.display = 'none';
+      document.getElementById('formMember').classList.remove('active');
+      document.getElementById('formComplete').classList.add('active');
+
+    } catch (error) {
+      showMessage('memberFormMessage', 'error',
+        isJapanese ? 'エラーが発生しました' : 'An error occurred');
+    }
+  }
+
+  // Submit guest application
+  async function submitGuestApplication() {
+    const isJapanese = document.body.classList.contains('lang-ja');
+    const name = document.getElementById('guestName').value.trim();
+    const email = document.getElementById('guestEmail').value.trim();
+    const phone = document.getElementById('guestPhone').value.trim();
+    const attendees = document.getElementById('guestAttendees').value;
+    const notes = document.getElementById('guestNotes').value.trim();
+
+    if (!name || !email) {
+      showMessage('guestFormMessage', 'error',
+        isJapanese ? 'お名前とメールアドレスを入力してください' : 'Please enter name and email');
+      return;
+    }
+
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'applyEvent',
+          eventId: currentEvent.id,
+          eventTitle: currentEvent.title,
+          eventDate: currentEvent.date,
+          eventVenue: currentEvent.venue,
+          applyMethod: 'guest',
+          name: name,
+          email: email,
+          phone: phone,
+          attendees: attendees,
+          notes: notes,
+          language: isJapanese ? 'ja' : 'en'
+        })
+      });
+
+      document.getElementById('methodSelector').style.display = 'none';
+      document.getElementById('formGuest').classList.remove('active');
+      document.getElementById('formComplete').classList.add('active');
+
+    } catch (error) {
+      showMessage('guestFormMessage', 'error',
+        isJapanese ? 'エラーが発生しました' : 'An error occurred');
+    }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('applyModal').addEventListener('click', function(e) {
+    if (e.target === this) closeApplyModal();
+  });
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeApplyModal();
+  });
 </script>
 
 </body>

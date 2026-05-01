@@ -19,6 +19,7 @@ const SITE_URL = 'https://hideo-t.github.io/mitsuakira-pro';
 const SHEET_NAME = 'サポーター登録';
 const ADMIN_SHEET_NAME = '管理者マスタ';
 const EVENT_SHEET_NAME = 'イベント';
+const APPLICATION_SHEET_NAME = 'イベント申込';
 const NOTIFICATION_EMAIL = ''; // 管理者通知メール（任意）
 
 // トークンの有効期限（24時間）
@@ -51,6 +52,11 @@ function doPost(e) {
       case 'saveEvent':
         // イベント保存
         result = saveEvent(data);
+        break;
+
+      case 'applyEvent':
+        // イベント申し込み
+        result = applyEvent(data);
         break;
 
       default:
@@ -108,6 +114,20 @@ function doGet(e) {
     const events = getPublicEvents();
     return ContentService
       .createTextOutput(JSON.stringify({ success: true, events: events }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // イベント申込一覧取得（管理者用）
+  if (action === 'getApplications') {
+    if (!verifyAdmin(email, password)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const eventId = e.parameter.eventId;
+    const applications = getApplications(eventId);
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, applications: applications }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -806,6 +826,253 @@ function getSupporters() {
   }
 
   return supporters;
+}
+
+// ============================================
+// イベント申し込み
+// ============================================
+
+/**
+ * イベント申し込みを処理
+ */
+function applyEvent(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(APPLICATION_SHEET_NAME);
+
+  // 申込シートがない場合は作成
+  if (!sheet) {
+    sheet = ss.insertSheet(APPLICATION_SHEET_NAME);
+    sheet.appendRow([
+      '申込ID', '申込日時', 'イベントID', 'イベント名', '開催日', '会場',
+      '申込方法', '会員番号', '名前', 'メールアドレス', '電話番号', '参加人数', '備考', 'ステータス'
+    ]);
+    sheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+
+  // 申込IDを生成
+  const applicationId = generateApplicationId(sheet);
+  const timestamp = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+
+  // 名前を取得（会員の場合はメールから検索）
+  let name = data.name || '';
+  if (data.applyMethod === 'member' && data.memberNumber) {
+    const memberInfo = getMemberByNumber(data.memberNumber, data.email);
+    if (memberInfo) {
+      name = memberInfo.name;
+    }
+  }
+
+  // データを保存
+  sheet.appendRow([
+    applicationId,
+    timestamp,
+    data.eventId,
+    data.eventTitle,
+    data.eventDate,
+    data.eventVenue,
+    data.applyMethod === 'member' ? 'サポーター会員' : '一般',
+    data.memberNumber || '',
+    name,
+    data.email,
+    data.phone || '',
+    data.attendees || '1',
+    data.notes || '',
+    '受付済'
+  ]);
+
+  // 確認メールを送信
+  sendApplicationConfirmation(data, applicationId);
+
+  // 管理者通知
+  if (NOTIFICATION_EMAIL) {
+    sendApplicationNotification(data, applicationId, name);
+  }
+
+  return { success: true, applicationId: applicationId };
+}
+
+/**
+ * 申込IDを生成
+ */
+function generateApplicationId(sheet) {
+  const data = sheet.getDataRange().getValues();
+  let maxNumber = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const appId = data[i][0];
+    if (appId && typeof appId === 'string' && appId.startsWith('AP-')) {
+      const num = parseInt(appId.substring(3), 10);
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+
+  return 'AP-' + String(maxNumber + 1).padStart(5, '0');
+}
+
+/**
+ * 会員番号から会員情報を取得
+ */
+function getMemberByNumber(memberNumber, email) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_NAME);
+
+  if (!sheet) return null;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === memberNumber && data[i][4] === email) {
+      return {
+        memberNumber: data[i][1],
+        name: data[i][8],
+        email: data[i][4]
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * イベント申込確認メールを送信
+ */
+function sendApplicationConfirmation(data, applicationId) {
+  const isJapanese = data.language === 'ja';
+  const name = data.name || data.memberNumber || 'お客様';
+
+  const subject = isJapanese
+    ? `【三晶プロダクション】イベント申込受付: ${data.eventTitle}`
+    : `【Mitsu Akira Production】Event Application Confirmed: ${data.eventTitle}`;
+
+  const body = isJapanese
+    ? `
+${name} 様
+
+イベントへのお申し込みを受け付けました。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 申込内容
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+申込番号: ${applicationId}
+イベント: ${data.eventTitle}
+開催日: ${data.eventDate}
+会場: ${data.eventVenue}
+参加人数: ${data.attendees || 1}名
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+当日は開場時間に合わせてお越しください。
+ご来場を心よりお待ちしております。
+
+※ご不明点がございましたら、公式LINEまたは
+  メールにてお問い合わせください。
+
+─────────────────────────
+三晶プロダクション
+${SITE_URL}
+─────────────────────────
+`
+    : `
+Dear ${name},
+
+Your event application has been received.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ Application Details
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Application No: ${applicationId}
+Event: ${data.eventTitle}
+Date: ${data.eventDate}
+Venue: ${data.eventVenue}
+Attendees: ${data.attendees || 1}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Please arrive at the venue by the opening time.
+We look forward to seeing you!
+
+─────────────────────────
+Mitsu Akira Production
+${SITE_URL}
+─────────────────────────
+`;
+
+  GmailApp.sendEmail(data.email, subject, body);
+}
+
+/**
+ * イベント申込管理者通知を送信
+ */
+function sendApplicationNotification(data, applicationId, name) {
+  const subject = `【三晶プロダクション】イベント申込: ${data.eventTitle}`;
+
+  const body = `
+新しいイベント申込がありました。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 申込情報
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+申込番号: ${applicationId}
+イベント: ${data.eventTitle}
+開催日: ${data.eventDate}
+
+申込方法: ${data.applyMethod === 'member' ? 'サポーター会員' : '一般'}
+${data.memberNumber ? `会員番号: ${data.memberNumber}` : ''}
+お名前: ${name || '(未登録)'}
+メール: ${data.email}
+${data.phone ? `電話: ${data.phone}` : ''}
+参加人数: ${data.attendees || 1}名
+
+${data.notes ? `■ 備考\n${data.notes}` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+スプレッドシートで確認:
+https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}
+`;
+
+  GmailApp.sendEmail(NOTIFICATION_EMAIL, subject, body);
+}
+
+/**
+ * イベント申込一覧を取得
+ */
+function getApplications(eventId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(APPLICATION_SHEET_NAME);
+
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const applications = [];
+
+  for (let i = 1; i < data.length; i++) {
+    // eventIdが指定されている場合はフィルタリング
+    if (eventId && data[i][2] !== eventId) continue;
+
+    applications.push({
+      applicationId: data[i][0],
+      appliedAt: data[i][1],
+      eventId: data[i][2],
+      eventTitle: data[i][3],
+      eventDate: data[i][4],
+      venue: data[i][5],
+      method: data[i][6],
+      memberNumber: data[i][7],
+      name: data[i][8],
+      email: data[i][9],
+      phone: data[i][10],
+      attendees: data[i][11],
+      notes: data[i][12],
+      status: data[i][13]
+    });
+  }
+
+  return applications;
 }
 
 /**

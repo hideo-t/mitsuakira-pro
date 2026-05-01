@@ -369,6 +369,7 @@
 <div class="admin-container" id="adminContainer">
   <nav class="admin-nav">
     <button class="active" onclick="showPanel('events')">イベント管理</button>
+    <button onclick="showPanel('applications')">イベント申込</button>
     <button onclick="showPanel('supporters')">サポーター一覧</button>
   </nav>
 
@@ -493,6 +494,19 @@
     </div>
   </div>
 
+  <!-- Applications Panel -->
+  <div class="admin-panel" id="panelApplications">
+    <div class="panel-header">
+      <h3>イベント申込一覧</h3>
+      <select id="filterEventId" onchange="loadApplications()" style="padding: 8px 16px; font-size: 14px;">
+        <option value="">すべてのイベント</option>
+      </select>
+    </div>
+    <div class="event-list" id="applicationList">
+      <div class="no-events">申込情報を読み込み中...</div>
+    </div>
+  </div>
+
   <!-- Supporters Panel -->
   <div class="admin-panel" id="panelSupporters">
     <div class="panel-header">
@@ -589,6 +603,9 @@
 
     if (panelName === 'supporters') {
       loadSupporters();
+    } else if (panelName === 'applications') {
+      loadEventFilter();
+      loadApplications();
     }
   }
 
@@ -760,6 +777,70 @@
           `).join('');
         } else {
           listEl.innerHTML = '<div class="no-events">サポーターがいません</div>';
+        }
+      }
+    } catch (error) {
+      listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
+    }
+  }
+
+  // Load event filter options
+  async function loadEventFilter() {
+    const select = document.getElementById('filterEventId');
+    const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+
+    try {
+      const response = await fetch(`${GAS_URL}?action=getEvents&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.events && data.events.length > 0) {
+          select.innerHTML = '<option value="">すべてのイベント</option>' +
+            data.events.map(ev => `<option value="${ev.id}">${ev.title} (${ev.date})</option>`).join('');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load events for filter');
+    }
+  }
+
+  // Load applications
+  async function loadApplications() {
+    const listEl = document.getElementById('applicationList');
+    const eventId = document.getElementById('filterEventId').value;
+    listEl.innerHTML = '<div class="no-events">読み込み中...</div>';
+
+    try {
+      const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+      let url = `${GAS_URL}?action=getApplications&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
+      if (eventId) {
+        url += `&eventId=${encodeURIComponent(eventId)}`;
+      }
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.applications && data.applications.length > 0) {
+          listEl.innerHTML = data.applications.map(app => `
+            <div class="event-item">
+              <div class="event-info">
+                <span class="event-id">${app.applicationId}</span>
+                <h4>${app.name || app.memberNumber || '(名前なし)'}</h4>
+                <p>
+                  <strong>${app.eventTitle}</strong> (${app.eventDate})<br>
+                  ${app.method} / ${app.attendees}名 / ${app.email}<br>
+                  ${app.phone ? `TEL: ${app.phone}` : ''}
+                  ${app.notes ? `<br>備考: ${app.notes}` : ''}
+                </p>
+              </div>
+              <div class="event-actions">
+                <span style="font-size: 12px; color: ${app.status === '受付済' ? '#2A5C3D' : '#666'};">
+                  ${app.status}
+                </span>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          listEl.innerHTML = '<div class="no-events">申込がありません</div>';
         }
       }
     } catch (error) {
