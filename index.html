@@ -197,6 +197,15 @@
     transition: 0.3s;
   }
 
+  /* デスクトップではモバイル専用要素を非表示 */
+  .mobile-quick-nav {
+    display: none;
+  }
+
+  .hero-company-mobile {
+    display: none;
+  }
+
   /* ---------- HERO ---------- */
   .hero {
     min-height: 100vh;
@@ -1692,6 +1701,62 @@
       display: none;
     }
 
+    /* モバイルではロゴテキストを非表示 */
+    .logo-text {
+      display: none;
+    }
+
+    /* モバイル用クイックナビ */
+    .mobile-quick-nav {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-left: auto;
+      margin-right: 12px;
+    }
+
+    .mobile-quick-nav a {
+      font-family: var(--serif);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-edo);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .mobile-quick-nav a:hover,
+    .mobile-quick-nav a:active {
+      background: rgba(139, 10, 26, 0.1);
+      color: var(--color-hi);
+    }
+
+    .mobile-quick-nav .line-link {
+      background: #06C755;
+      color: white;
+      font-weight: 700;
+    }
+
+    .mobile-quick-nav .line-link:hover,
+    .mobile-quick-nav .line-link:active {
+      background: #05a847;
+      color: white;
+    }
+
+    /* ヒーローに三晶プロダクション表示（モバイルのみ） */
+    .hero-company-mobile {
+      display: block;
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-edo);
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+      opacity: 0;
+      animation: fadeUp 1s 0.1s forwards;
+    }
+
     /* モバイルでは印刷ボタンを非表示 */
     .print-btn {
       display: none;
@@ -1883,6 +1948,14 @@
       <span class="logo-text">三晶プロダクション</span>
       <span class="logo-reading">みつあきら</span>
     </a>
+    <!-- モバイル用クイックナビ -->
+    <div class="mobile-quick-nav">
+      <a href="#vision" class="ja-only">志</a>
+      <a href="#vision" class="en-only">Vision</a>
+      <a href="#events" class="ja-only">イベント</a>
+      <a href="#events" class="en-only">Events</a>
+      <a href="https://lin.ee/zMR1NuAF" target="_blank" rel="noopener" class="line-link">LINE</a>
+    </div>
     <button class="nav-toggle" id="navToggle" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -1922,6 +1995,7 @@
     </g>
   </svg>
   <div class="hero-content">
+    <p class="hero-company-mobile">三晶プロダクション</p>
     <p class="hero-eyebrow">
       <span class="ja-only">MITSU AKIRA PRODUCTION ─ since 2026</span>
       <span class="en-only">MITSU AKIRA PRODUCTION ─ since 2026</span>
