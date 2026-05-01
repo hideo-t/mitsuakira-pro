@@ -67,6 +67,197 @@ function testEmailSend() {
   }
 }
 
+// ===== テスト環境セットアップ =====
+// GASエディタでこの関数を実行して、テストデータを作成します
+function setupTestData() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  console.log('テストデータセットアップ開始...');
+
+  // ===== 1. eventsシートのセットアップ =====
+  let eventsSheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!eventsSheet) {
+    eventsSheet = ss.insertSheet(SHEET_EVENTS);
+    eventsSheet.appendRow([
+      'event_id', 'title', 'date', 'time_open', 'time_start', 'time_end',
+      'venue_name', 'venue_address', 'venue_url', 'map_url',
+      'capacity', 'reserved_count', 'price_general', 'price_member',
+      'performer', 'program', 'description', 'image_url', 'status',
+      'created_at', 'updated_at'
+    ]);
+    eventsSheet.getRange(1, 1, 1, 21).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventsSheet.setFrozenRows(1);
+    console.log('eventsシートを作成しました');
+  }
+
+  // テストイベントを追加または更新
+  const testEventId = 'EV-20260610-01';
+  const eventsData = eventsSheet.getDataRange().getValues();
+  let eventRowIndex = -1;
+
+  for (let i = 1; i < eventsData.length; i++) {
+    if (eventsData[i][0] === testEventId) {
+      eventRowIndex = i + 1;
+      break;
+    }
+  }
+
+  const testEventData = [
+    testEventId,                              // event_id
+    '第1回落語【風と曼荼羅】',                    // title
+    '2026-06-10',                             // date
+    '13:30',                                  // time_open
+    '14:00',                                  // time_start
+    '16:00',                                  // time_end
+    '白河市民会館 小ホール',                     // venue_name
+    '福島県白河市中田7-1',                      // venue_address
+    'https://www.city.shirakawa.fukushima.jp/', // venue_url
+    'https://maps.google.com/?q=白河市民会館',   // map_url
+    50,                                       // capacity（定員50名）
+    0,                                        // reserved_count（予約数リセット）
+    3000,                                     // price_general（一般3000円）
+    2500,                                     // price_member（会員2500円）
+    '三遊亭円左衛門',                           // performer
+    '時そば / 初天神',                         // program
+    '三晶プロダクション設立記念の第1回落語会です。', // description
+    '',                                       // image_url
+    'published',                              // status
+    new Date(),                               // created_at
+    new Date()                                // updated_at
+  ];
+
+  if (eventRowIndex > 0) {
+    // 既存イベントを更新
+    eventsSheet.getRange(eventRowIndex, 1, 1, testEventData.length).setValues([testEventData]);
+    console.log('テストイベントを更新しました: ' + testEventId);
+  } else {
+    // 新規追加
+    eventsSheet.appendRow(testEventData);
+    console.log('テストイベントを追加しました: ' + testEventId);
+  }
+
+  // ===== 2. reservationsシートのセットアップ =====
+  let resSheet = ss.getSheetByName(SHEET_RESERVATIONS);
+  if (!resSheet) {
+    resSheet = ss.insertSheet(SHEET_RESERVATIONS);
+    resSheet.appendRow([
+      'reservation_id', 'event_id', 'member_id', 'name', 'name_kana', 'email',
+      'email_verified', 'phone', 'party_size', 'channel', 'status', 'is_member',
+      'price_applied', 'wants_to_register', 'verification_token', 'token_expires_at',
+      'reserved_at', 'confirmed_at', 'cancelled_at', 'cancel_reason', 'notes'
+    ]);
+    resSheet.getRange(1, 1, 1, 21).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    resSheet.setFrozenRows(1);
+    console.log('reservationsシートを作成しました');
+  }
+  console.log('reservationsシート: 既存の予約データはそのまま保持');
+
+  // ===== 3. membersシートのセットアップ =====
+  let memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!memSheet) {
+    memSheet = ss.insertSheet(SHEET_MEMBERS);
+    memSheet.appendRow([
+      'member_id', 'name', 'name_kana', 'email', 'email_verified', 'phone',
+      'line_id', 'line_name', 'region', 'referral', 'plan', 'status',
+      'event_count', 'last_event_at', 'registered_at', 'verified_at',
+      'verification_token', 'token_expires_at', 'notes'
+    ]);
+    memSheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    memSheet.setFrozenRows(1);
+    console.log('membersシートを作成しました');
+  }
+  console.log('membersシート: 既存の会員データはそのまま保持');
+
+  // ===== 4. email_logシートのセットアップ =====
+  let logSheet = ss.getSheetByName(SHEET_EMAIL_LOG);
+  if (!logSheet) {
+    logSheet = ss.insertSheet(SHEET_EMAIL_LOG);
+    logSheet.appendRow(['log_id', 'to_email', 'to_name', 'subject', 'template', 'related_id', 'status', 'sent_at', 'error_message']);
+    logSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    logSheet.setFrozenRows(1);
+    console.log('email_logシートを作成しました');
+  }
+
+  // ===== 5. debug_logシートをクリア =====
+  let debugSheet = ss.getSheetByName('debug_log');
+  if (debugSheet) {
+    const lastRow = debugSheet.getLastRow();
+    if (lastRow > 1) {
+      debugSheet.deleteRows(2, lastRow - 1);
+    }
+    console.log('debug_logシートをクリアしました');
+  }
+
+  console.log('');
+  console.log('===== テストデータセットアップ完了 =====');
+  console.log('テストイベント: ' + testEventId);
+  console.log('  - 定員: 50名');
+  console.log('  - 予約数: 0');
+  console.log('  - 一般料金: 3000円');
+  console.log('  - 会員料金: 2500円');
+  console.log('  - ステータス: published');
+  console.log('');
+  console.log('サイトからイベント申し込みをテストしてください。');
+}
+
+// ===== テストデータのリセット =====
+// 予約データと会員データをクリアしたい場合に実行
+function resetTestData() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // reservationsシートをクリア（ヘッダー以外）
+  const resSheet = ss.getSheetByName(SHEET_RESERVATIONS);
+  if (resSheet) {
+    const lastRow = resSheet.getLastRow();
+    if (lastRow > 1) {
+      resSheet.deleteRows(2, lastRow - 1);
+      console.log('reservationsシートをクリアしました');
+    }
+  }
+
+  // membersシートをクリア（ヘッダー以外）
+  const memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (memSheet) {
+    const lastRow = memSheet.getLastRow();
+    if (lastRow > 1) {
+      memSheet.deleteRows(2, lastRow - 1);
+      console.log('membersシートをクリアしました');
+    }
+  }
+
+  // email_logシートをクリア（ヘッダー以外）
+  const logSheet = ss.getSheetByName(SHEET_EMAIL_LOG);
+  if (logSheet) {
+    const lastRow = logSheet.getLastRow();
+    if (lastRow > 1) {
+      logSheet.deleteRows(2, lastRow - 1);
+      console.log('email_logシートをクリアしました');
+    }
+  }
+
+  // イベントの予約数をリセット
+  const eventsSheet = ss.getSheetByName(SHEET_EVENTS);
+  if (eventsSheet) {
+    const data = eventsSheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      eventsSheet.getRange(i + 1, 12).setValue(0); // reserved_count列
+    }
+    console.log('イベントの予約数をリセットしました');
+  }
+
+  // debug_logシートをクリア
+  const debugSheet = ss.getSheetByName('debug_log');
+  if (debugSheet) {
+    const lastRow = debugSheet.getLastRow();
+    if (lastRow > 1) {
+      debugSheet.deleteRows(2, lastRow - 1);
+      console.log('debug_logシートをクリアしました');
+    }
+  }
+
+  console.log('');
+  console.log('===== テストデータリセット完了 =====');
+}
+
 // ===== POSTリクエスト処理 =====
 function doPost(e) {
   // 最初にデバッグログを書き込む（エラーも記録）
