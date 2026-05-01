@@ -69,18 +69,30 @@ function testEmailSend() {
 
 // ===== POSTリクエスト処理 =====
 function doPost(e) {
-  // デバッグログ
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let debugSheet = ss.getSheetByName('debug_log');
-  if (!debugSheet) {
-    debugSheet = ss.insertSheet('debug_log');
-    debugSheet.appendRow(['timestamp', 'action', 'data']);
+  // 最初にデバッグログを書き込む
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let debugSheet = ss.getSheetByName('debug_log');
+    if (!debugSheet) {
+      debugSheet = ss.insertSheet('debug_log');
+      debugSheet.appendRow(['timestamp', 'type', 'message']);
+    }
+    debugSheet.appendRow([new Date(), 'doPost_start', 'doPost called']);
+
+    // postDataの確認
+    if (!e || !e.postData) {
+      debugSheet.appendRow([new Date(), 'error', 'e or e.postData is null']);
+      return ContentService.createTextOutput(JSON.stringify({success: false, message: 'No postData'}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    debugSheet.appendRow([new Date(), 'postData', e.postData.contents]);
+  } catch (debugError) {
+    // デバッグログ自体のエラーは無視して続行
   }
 
   try {
     const data = JSON.parse(e.postData.contents);
-    debugSheet.appendRow([new Date(), data.action, JSON.stringify(data)]);
-
     let result;
 
     switch (data.action) {
