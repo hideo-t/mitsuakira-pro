@@ -59,6 +59,11 @@ function doPost(e) {
         result = applyEvent(data);
         break;
 
+      case 'registerAndApply':
+        // サポーター登録 + イベント申し込み同時処理
+        result = registerAndApplyEvent(data);
+        break;
+
       default:
         throw new Error('Invalid action');
     }
@@ -1119,6 +1124,200 @@ function initAdminSheet() {
   sheet.appendRow(['admin@mitsuakira.com', 'admin123', '管理者', 'admin', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd')]);
 
   Logger.log('Admin sheet initialized');
+}
+
+/**
+ * サポーター登録 + イベント申し込み同時処理
+ */
+function registerAndApplyEvent(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. サポーター登録
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow([
+      '登録ID', '会員番号', '登録日時', 'ステータス', 'メールアドレス', '認証トークン', 'トークン有効期限',
+      'サポート種別', '名前', '電話番号', '関心分野', 'メッセージ', '言語', '認証日時', '登録完了日時'
+    ]);
+    sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+
+  // メールアドレスの重複チェック
+  const existingData = sheet.getDataRange().getValues();
+  for (let i = 1; i < existingData.length; i++) {
+    if (existingData[i][4] === data.email && existingData[i][3] === '登録完了') {
+      return { success: false, message: 'Email already registered as supporter' };
+    }
+  }
+
+  // 会員番号を発行
+  const memberNumber = generateMemberNumber(sheet);
+  const registrationId = 'SUP-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMddHHmmss');
+  const timestamp = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
+
+  // サポート種別を日本語に変換
+  const supportTypeMap = {
+    'personal': '個人サポーター',
+    'corporate': '法人・企業',
+    'volunteer': 'ボランティア'
+  };
+
+  // サポーター登録（認証スキップで直接登録完了）
+  sheet.appendRow([
+    registrationId,
+    memberNumber,
+    timestamp,
+    '登録完了',
+    data.email,
+    '', // トークンなし
+    '', // 期限なし
+    supportTypeMap[data.supportType] || data.supportType,
+    data.name,
+    data.phone || '',
+    'イベント申込同時登録',
+    data.notes || '',
+    data.language || 'ja',
+    timestamp, // 認証日時
+    timestamp  // 登録完了日時
+  ]);
+
+  // 2. イベント申し込み
+  let appSheet = ss.getSheetByName(APPLICATION_SHEET_NAME);
+  if (!appSheet) {
+    appSheet = ss.insertSheet(APPLICATION_SHEET_NAME);
+    appSheet.appendRow([
+      '申込ID', '申込日時', 'イベントID', 'イベント名', '開催日', '会場',
+      '申込方法', '会員番号', '名前', 'メールアドレス', '電話番号', '参加人数', '備考', 'ステータス'
+    ]);
+    appSheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    appSheet.setFrozenRows(1);
+  }
+
+  const applicationId = generateApplicationId(appSheet);
+
+  appSheet.appendRow([
+    applicationId,
+    timestamp,
+    data.eventId,
+    data.eventTitle,
+    data.eventDate,
+    data.eventVenue,
+    '新規サポーター登録',
+    memberNumber,
+    data.name,
+    data.email,
+    data.phone || '',
+    data.attendees || '1',
+    data.notes || '',
+    '受付済'
+  ]);
+
+  // 3. 登録完了 + イベント申込確認メールを送信
+  sendRegisterAndApplyConfirmation(data, memberNumber, registrationId, applicationId);
+
+  return {
+    success: true,
+    memberNumber: memberNumber,
+    registrationId: registrationId,
+    applicationId: applicationId
+  };
+}
+
+/**
+ * サポーター登録＋イベント申込確認メールを送信
+ */
+function sendRegisterAndApplyConfirmation(data, memberNumber, registrationId, applicationId) {
+  const isJapanese = data.language === 'ja';
+
+  const subject = isJapanese
+    ? `【三晶プロダクション】サポーター登録 & イベント申込完了 - 会員番号: ${memberNumber}`
+    : `【Mitsu Akira Production】Registration & Application Complete - Member No: ${memberNumber}`;
+
+  const body = isJapanese
+    ? `
+${data.name} 様
+
+この度は三晶プロダクションのサポーターにご登録いただき、
+また、イベントへのお申し込み、誠にありがとうございます。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ サポーター会員情報
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+会員番号: ${memberNumber}
+登録ID: ${registrationId}
+メールアドレス: ${data.email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ イベント申込内容
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+申込番号: ${applicationId}
+イベント: ${data.eventTitle}
+開催日: ${data.eventDate}
+会場: ${data.eventVenue}
+参加人数: ${data.attendees || 1}名
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+上記の会員番号は、今後のイベント参加時に
+ご利用いただく場合がございます。大切に保管してください。
+
+当日は開場時間に合わせてお越しください。
+ご来場を心よりお待ちしております。
+
+─────────────────────────
+三晶プロダクション
+${SITE_URL}
+
+〒961-0905
+福島県白河市道場小路 31-14
+─────────────────────────
+`
+    : `
+Dear ${data.name},
+
+Thank you for registering as a supporter of Mitsu Akira Production
+and for your event application.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ Supporter Member Information
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Member Number: ${memberNumber}
+Registration ID: ${registrationId}
+Email: ${data.email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ Event Application Details
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Application No: ${applicationId}
+Event: ${data.eventTitle}
+Date: ${data.eventDate}
+Venue: ${data.eventVenue}
+Attendees: ${data.attendees || 1}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Please keep your member number safe.
+You may need it for future event participation.
+
+Please arrive at the venue by the opening time.
+We look forward to seeing you!
+
+─────────────────────────
+Mitsu Akira Production
+${SITE_URL}
+
+31-14 Dojo-koji, Shirakawa,
+Fukushima 961-0905, Japan
+─────────────────────────
+`;
+
+  GmailApp.sendEmail(data.email, subject, body);
 }
 
 /**

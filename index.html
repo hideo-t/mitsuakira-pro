@@ -2123,6 +2123,32 @@
         <p style="font-weight: 500; margin-bottom: 12px;" class="en-only">Select Application Method</p>
 
         <div class="apply-method-option">
+          <input type="radio" name="applyMethod" id="methodMember" value="member">
+          <label for="methodMember">
+            <span class="method-icon">⭐</span>
+            <div class="method-info">
+              <div class="method-name ja-only">すでにサポーターの方</div>
+              <div class="method-name en-only">Existing Supporter</div>
+              <div class="method-desc ja-only">会員番号をお持ちの方・優先予約</div>
+              <div class="method-desc en-only">For members with member number - Priority</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="apply-method-option">
+          <input type="radio" name="applyMethod" id="methodNewMember" value="newMember">
+          <label for="methodNewMember">
+            <span class="method-icon">✨</span>
+            <div class="method-info">
+              <div class="method-name ja-only">同時にサポーターになる</div>
+              <div class="method-name en-only">Become a Supporter</div>
+              <div class="method-desc ja-only">イベント申込と同時にサポーター登録</div>
+              <div class="method-desc en-only">Register as supporter with event application</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="apply-method-option">
           <input type="radio" name="applyMethod" id="methodLine" value="line">
           <label for="methodLine">
             <span class="method-icon">💬</span>
@@ -2131,19 +2157,6 @@
               <div class="method-name en-only">Apply via LINE</div>
               <div class="method-desc ja-only">公式LINEから簡単に申し込み</div>
               <div class="method-desc en-only">Quick application via official LINE</div>
-            </div>
-          </label>
-        </div>
-
-        <div class="apply-method-option">
-          <input type="radio" name="applyMethod" id="methodMember" value="member">
-          <label for="methodMember">
-            <span class="method-icon">⭐</span>
-            <div class="method-info">
-              <div class="method-name ja-only">サポーター会員として申し込む</div>
-              <div class="method-name en-only">Apply as Supporter Member</div>
-              <div class="method-desc ja-only">会員番号をお持ちの方・優先予約</div>
-              <div class="method-desc en-only">For members with member number - Priority</div>
             </div>
           </label>
         </div>
@@ -2237,6 +2250,73 @@
         </button>
       </div>
 
+      <!-- 同時にサポーターになるフォーム -->
+      <div class="apply-form-fields" id="formNewMember">
+        <div class="form-message" id="newMemberFormMessage"></div>
+        <p style="font-size: 14px; color: var(--color-hi); margin-bottom: 16px; padding: 12px; background: rgba(139,10,26,0.08); border-left: 3px solid var(--color-hi);" class="ja-only">
+          イベント申込と同時にサポーター登録ができます。<br>登録完了後、会員番号をメールでお届けします。
+        </p>
+        <p style="font-size: 14px; color: var(--color-hi); margin-bottom: 16px; padding: 12px; background: rgba(139,10,26,0.08); border-left: 3px solid var(--color-hi);" class="en-only">
+          Register as a supporter while applying for the event.<br>You will receive your member number by email.
+        </p>
+        <div class="form-group">
+          <label class="ja-only">お名前 *</label>
+          <label class="en-only">Name *</label>
+          <input type="text" id="newMemberName" placeholder="山田 太郎">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">メールアドレス *</label>
+          <label class="en-only">Email *</label>
+          <input type="email" id="newMemberEmail" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">電話番号</label>
+          <label class="en-only">Phone</label>
+          <input type="tel" id="newMemberPhone" placeholder="090-1234-5678">
+        </div>
+        <div class="form-group">
+          <label class="ja-only">サポート種別</label>
+          <label class="en-only">Support Type</label>
+          <select id="newMemberSupportType">
+            <option value="personal" class="ja-only">個人サポーター</option>
+            <option value="personal" class="en-only">Individual</option>
+            <option value="corporate" class="ja-only">法人・企業</option>
+            <option value="corporate" class="en-only">Corporate</option>
+            <option value="volunteer" class="ja-only">ボランティア</option>
+            <option value="volunteer" class="en-only">Volunteer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="ja-only">参加人数</label>
+          <label class="en-only">Number of Attendees</label>
+          <select id="newMemberAttendees">
+            <option value="1">1名</option>
+            <option value="2">2名</option>
+            <option value="3">3名</option>
+            <option value="4">4名</option>
+            <option value="5">5名以上</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="ja-only">備考</label>
+          <label class="en-only">Notes</label>
+          <textarea id="newMemberNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
+        </div>
+        <div class="form-group">
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="newMemberPrivacy" style="margin-top: 4px;">
+            <span style="font-size: 13px;">
+              <span class="ja-only">個人情報の取り扱いに同意する</span>
+              <span class="en-only">I agree to the privacy policy</span>
+            </span>
+          </label>
+        </div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="submitNewMemberApplication()">
+          <span class="ja-only">サポーター登録 & イベント申し込み</span>
+          <span class="en-only">Register & Apply</span>
+        </button>
+      </div>
+
       <!-- 申し込み完了 -->
       <div class="apply-form-fields" id="formComplete">
         <div style="text-align: center; padding: 20px 0;">
@@ -2245,6 +2325,29 @@
           <h4 class="en-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">Application Received</h4>
           <p class="ja-only" style="color: var(--color-sumi-light); font-size: 14px;">確認メールをお送りしました。<br>当日のご来場をお待ちしております。</p>
           <p class="en-only" style="color: var(--color-sumi-light); font-size: 14px;">A confirmation email has been sent.<br>We look forward to seeing you!</p>
+          <button class="btn btn-outline" style="margin-top: 24px;" onclick="closeApplyModal()">
+            <span class="ja-only">閉じる</span>
+            <span class="en-only">Close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 新規サポーター登録＋申し込み完了 -->
+      <div class="apply-form-fields" id="formCompleteNewMember">
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+          <h4 class="ja-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">登録・申し込み完了</h4>
+          <h4 class="en-only" style="font-family: var(--serif); font-size: 20px; margin-bottom: 12px;">Registration & Application Complete</h4>
+          <p class="ja-only" style="color: var(--color-sumi-light); font-size: 14px;">
+            サポーター登録とイベント申し込みを<br>受け付けました。<br><br>
+            確認メールをお送りしました。<br>会員番号をメールでご確認ください。<br><br>
+            当日のご来場をお待ちしております。
+          </p>
+          <p class="en-only" style="color: var(--color-sumi-light); font-size: 14px;">
+            Your supporter registration and event<br>application have been received.<br><br>
+            A confirmation email has been sent.<br>Please check your member number in the email.<br><br>
+            We look forward to seeing you!
+          </p>
           <button class="btn btn-outline" style="margin-top: 24px;" onclick="closeApplyModal()">
             <span class="ja-only">閉じる</span>
             <span class="en-only">Close</span>
@@ -3049,6 +3152,8 @@
         closeApplyModal();
       } else if (method === 'member') {
         document.getElementById('formMember').classList.add('active');
+      } else if (method === 'newMember') {
+        document.getElementById('formNewMember').classList.add('active');
       } else if (method === 'guest') {
         document.getElementById('formGuest').classList.add('active');
       }
@@ -3141,6 +3246,63 @@
 
     } catch (error) {
       showMessage('guestFormMessage', 'error',
+        isJapanese ? 'エラーが発生しました' : 'An error occurred');
+    }
+  }
+
+  // Submit new member application (register as supporter + apply for event)
+  async function submitNewMemberApplication() {
+    const isJapanese = document.body.classList.contains('lang-ja');
+    const name = document.getElementById('newMemberName').value.trim();
+    const email = document.getElementById('newMemberEmail').value.trim();
+    const phone = document.getElementById('newMemberPhone').value.trim();
+    const supportType = document.getElementById('newMemberSupportType').value;
+    const attendees = document.getElementById('newMemberAttendees').value;
+    const notes = document.getElementById('newMemberNotes').value.trim();
+    const privacy = document.getElementById('newMemberPrivacy').checked;
+
+    if (!name || !email) {
+      showMessage('newMemberFormMessage', 'error',
+        isJapanese ? 'お名前とメールアドレスを入力してください' : 'Please enter name and email');
+      return;
+    }
+
+    if (!privacy) {
+      showMessage('newMemberFormMessage', 'error',
+        isJapanese ? '個人情報の取り扱いに同意してください' : 'Please agree to the privacy policy');
+      return;
+    }
+
+    try {
+      // Step 1: Register as supporter (sends verification email)
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'registerAndApply',
+          // Supporter info
+          email: email,
+          name: name,
+          phone: phone,
+          supportType: supportType,
+          // Event info
+          eventId: currentEvent.id,
+          eventTitle: currentEvent.title,
+          eventDate: currentEvent.date,
+          eventVenue: currentEvent.venue,
+          attendees: attendees,
+          notes: notes,
+          language: isJapanese ? 'ja' : 'en'
+        })
+      });
+
+      document.getElementById('methodSelector').style.display = 'none';
+      document.getElementById('formNewMember').classList.remove('active');
+      document.getElementById('formCompleteNewMember').classList.add('active');
+
+    } catch (error) {
+      showMessage('newMemberFormMessage', 'error',
         isJapanese ? 'エラーが発生しました' : 'An error occurred');
     }
   }
