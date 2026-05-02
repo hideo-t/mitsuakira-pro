@@ -15,7 +15,7 @@ const LINE_URL = 'https://lin.ee/zMR1NuAF';
 
 // LINE Messaging API設定
 // LINE Developersコンソールで取得したChannel Access Token
-const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN';
+const LINE_CHANNEL_ACCESS_TOKEN = '4ZAB3Fu5GqbH4LqC3bIS4Z3lFZg9v0SwnMajMFib33usckudkpZycMcBMdL9NmsI+0C2ON/P/zKo7VyvR8z3h0zRxvWJnAP0p6nns4hcOg1fF5ugC84duey2b7Oh/lmEkI0Q2slmbxYkBFJ8rccmcQdB04t89/1O/w1cDnyilFU=';
 
 // シート名
 const SHEET_MEMBERS = 'members';
