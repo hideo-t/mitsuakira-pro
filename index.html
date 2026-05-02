@@ -2231,6 +2231,42 @@
           <div class="event-summary-seats" id="applyEventSeats"></div>
         </div>
 
+        <!-- LINE申し込み（優先） -->
+        <div class="line-section" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); text-align: center; border-radius: 8px;">
+          <p style="color: white; font-size: 16px; font-weight: 700; margin-bottom: 8px;" class="ja-only">
+            ① LINEで簡単申し込み（おすすめ）
+          </p>
+          <p style="color: white; font-size: 16px; font-weight: 700; margin-bottom: 8px;" class="en-only">
+            ① Easy Application via LINE (Recommended)
+          </p>
+          <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin-bottom: 16px;" class="ja-only">
+            友だち追加後、メッセージで申し込み
+          </p>
+          <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin-bottom: 16px;" class="en-only">
+            Add as friend, then send a message to apply
+          </p>
+          <a href="https://lin.ee/zMR1NuAF" target="_blank" class="btn-line" style="background: white; color: #06C755; padding: 12px 32px; text-decoration: none; font-weight: 700; display: inline-block; border-radius: 4px; font-size: 15px;">
+            <span class="ja-only">LINEで申し込む</span>
+            <span class="en-only">Apply via LINE</span>
+          </a>
+        </div>
+
+        <!-- 区切り線 -->
+        <div style="display: flex; align-items: center; margin: 24px 0;">
+          <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
+          <span style="padding: 0 16px; color: var(--color-sumi-light); font-size: 13px;" class="ja-only">または</span>
+          <span style="padding: 0 16px; color: var(--color-sumi-light); font-size: 13px;" class="en-only">or</span>
+          <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
+        </div>
+
+        <!-- メール申し込み -->
+        <p style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="ja-only">
+          ② メールで申し込み
+        </p>
+        <p style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="en-only">
+          ② Apply via Email
+        </p>
+
         <input type="hidden" id="applyEventId">
         <input type="hidden" id="applyPriceGeneral">
         <input type="hidden" id="applyPriceMember">
@@ -2310,19 +2346,6 @@
           <label class="ja-only">備考</label>
           <label class="en-only">Notes</label>
           <textarea id="applyNotes" placeholder="ご質問やご要望があればご記入ください"></textarea>
-        </div>
-
-        <div class="line-section" style="margin: 24px 0; padding: 16px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); text-align: center;">
-          <p style="color: white; font-size: 14px; margin-bottom: 12px;" class="ja-only">
-            LINEでも申し込みできます
-          </p>
-          <p style="color: white; font-size: 14px; margin-bottom: 12px;" class="en-only">
-            You can also apply via LINE
-          </p>
-          <a href="https://lin.ee/zMR1NuAF" target="_blank" class="btn-line" style="background: white; color: #06C755; padding: 10px 24px; text-decoration: none; font-weight: 700; display: inline-block;">
-            <span class="ja-only">公式LINE で申し込む</span>
-            <span class="en-only">Apply via LINE</span>
-          </a>
         </div>
 
         <button class="btn btn-primary" style="width: 100%;" onclick="showConfirmStep()">
@@ -2414,6 +2437,37 @@
       Join us in creating the future of Rakugo, from Shirakawa to the world.
     </p>
 
+    <!-- ===== LINE登録（優先） ===== -->
+    <div class="supporter-form reveal" style="margin-bottom: 32px;">
+      <div style="background: linear-gradient(135deg, #06C755 0%, #05a648 100%); padding: 32px; text-align: center; border-radius: 8px;">
+        <div style="font-size: 40px; margin-bottom: 12px;">💬</div>
+        <h3 style="color: white; font-size: 20px; font-weight: 700; margin-bottom: 8px;" class="ja-only">
+          ① LINEで登録（おすすめ）
+        </h3>
+        <h3 style="color: white; font-size: 20px; font-weight: 700; margin-bottom: 8px;" class="en-only">
+          ① Register via LINE (Recommended)
+        </h3>
+        <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 20px; line-height: 1.6;" class="ja-only">
+          友だち追加するだけで登録完了！<br>イベント情報やお得な特典をいち早くお届けします。
+        </p>
+        <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 20px; line-height: 1.6;" class="en-only">
+          Just add as friend to register!<br>Get event info and exclusive offers first.
+        </p>
+        <a href="https://lin.ee/zMR1NuAF" target="_blank" rel="noopener" style="background: white; color: #06C755; padding: 14px 40px; text-decoration: none; font-weight: 700; display: inline-block; border-radius: 4px; font-size: 16px;">
+          <span class="ja-only">LINEで友だち追加</span>
+          <span class="en-only">Add LINE Friend</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 区切り線 -->
+    <div class="reveal" style="display: flex; align-items: center; margin: 32px 0;">
+      <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
+      <span style="padding: 0 20px; color: var(--color-sumi-light); font-size: 14px;" class="ja-only">または</span>
+      <span style="padding: 0 20px; color: var(--color-sumi-light); font-size: 14px;" class="en-only">or</span>
+      <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
+    </div>
+
     <!-- ===== Step 1: メールアドレス入力 ===== -->
     <form class="supporter-form reveal" id="emailForm" onsubmit="return handleEmailSubmit(event)">
       <div class="form-message" id="emailFormMessage"></div>
@@ -2426,14 +2480,14 @@
         <span class="step">3</span>
       </div>
 
-      <h3 class="form-step-title ja-only">Step 1: メールアドレスの登録</h3>
-      <h3 class="form-step-title en-only">Step 1: Enter Your Email</h3>
+      <h3 class="form-step-title ja-only">② メールで登録</h3>
+      <h3 class="form-step-title en-only">② Register via Email</h3>
 
       <p class="form-step-desc ja-only">
-        まずメールアドレスをご入力ください。<br>認証メールをお送りします。
+        メールアドレスをご入力ください。認証メールをお送りします。
       </p>
       <p class="form-step-desc en-only">
-        Please enter your email address.<br>We will send you a verification email.
+        Enter your email address. We will send you a verification email.
       </p>
 
       <div class="form-group">
