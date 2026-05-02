@@ -13,6 +13,10 @@ const SPREADSHEET_ID = '1g4YHWYDamiUDf1ko4vyQ_l2-VOWfGgj3Wm1COes52l4';
 const SITE_URL = 'https://hideo-t.github.io/mitsuakira-pro';
 const LINE_URL = 'https://lin.ee/zMR1NuAF';
 
+// LINE Messaging API設定
+// LINE Developersコンソールで取得したChannel Access Token
+const LINE_CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN';
+
 // シート名
 const SHEET_MEMBERS = 'members';
 const SHEET_EVENTS = 'events';
@@ -303,6 +307,14 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     let result;
 
+    // LINE Webhook イベント処理
+    if (data.events && Array.isArray(data.events)) {
+      if (debugSheet) {
+        try { debugSheet.appendRow([new Date(), 'LINE_webhook', 'events: ' + data.events.length]); } catch (e) {}
+      }
+      return handleLineWebhook(data.events);
+    }
+
     // アクションをログに記録
     if (debugSheet) {
       try {
@@ -375,6 +387,160 @@ function doPost(e) {
       .createTextOutput(JSON.stringify({ success: false, message: error.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// ===== LINE Webhook 処理 =====
+function handleLineWebhook(events) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let debugSheet = ss.getSheetByName('debug_log');
+
+  for (const event of events) {
+    try {
+      if (debugSheet) {
+        debugSheet.appendRow([new Date(), 'LINE_event', event.type + ' from ' + (event.source?.userId || 'unknown')]);
+      }
+
+      switch (event.type) {
+        case 'follow':
+          // 友だち追加
+          handleLineFollow(event);
+          break;
+        case 'unfollow':
+          // ブロック/友だち解除
+          handleLineUnfollow(event);
+          break;
+        case 'message':
+          // メッセージ受信（将来の拡張用）
+          if (debugSheet) {
+            debugSheet.appendRow([new Date(), 'LINE_message', JSON.stringify(event.message).substring(0, 200)]);
+          }
+          break;
+      }
+    } catch (err) {
+      if (debugSheet) {
+        debugSheet.appendRow([new Date(), 'LINE_error', err.toString()]);
+      }
+    }
+  }
+
+  // LINEには200 OKを返す
+  return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
+}
+
+// LINE友だち追加処理
+function handleLineFollow(event) {
+  const userId = event.source?.userId;
+  if (!userId) return;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let memSheet = ss.getSheetByName(SHEET_MEMBERS);
+
+  // membersシートがなければ作成
+  if (!memSheet) {
+    memSheet = ss.insertSheet(SHEET_MEMBERS);
+    memSheet.appendRow([
+      'member_id', 'name', 'name_kana', 'email', 'email_verified', 'phone',
+      'line_id', 'line_name', 'region', 'referral', 'plan', 'status',
+      'event_count', 'last_event_at', 'registered_at', 'verified_at',
+      'verification_token', 'token_expires_at', 'notes'
+    ]);
+    memSheet.getRange(1, 1, 1, 19).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    memSheet.setFrozenRows(1);
+  }
+
+  // 既存のLINE IDチェック
+  const existingData = memSheet.getDataRange().getValues();
+  for (let i = 1; i < existingData.length; i++) {
+    if (existingData[i][6] === userId) {
+      // 既に登録済み - ステータスをactiveに戻す（再フォローの場合）
+      memSheet.getRange(i + 1, 12).setValue('active');
+      return;
+    }
+  }
+
+  // LINEプロフィール取得
+  let lineName = '';
+  try {
+    const profile = getLineProfile(userId);
+    lineName = profile.displayName || '';
+  } catch (e) {
+    // プロフィール取得失敗は無視
+  }
+
+  // 新規メンバー登録
+  const memberId = generateMemberId(memSheet);
+  const now = new Date();
+
+  memSheet.appendRow([
+    memberId,
+    lineName || 'LINE会員',
+    '',           // name_kana
+    '',           // email
+    false,        // email_verified
+    '',           // phone
+    userId,       // line_id
+    lineName,     // line_name
+    '',           // region
+    'LINE',       // referral
+    'free',       // plan
+    'active',     // status (LINE登録は即active)
+    0,            // event_count
+    '',           // last_event_at
+    now,          // registered_at
+    now,          // verified_at (LINE認証済み)
+    '',           // verification_token
+    '',           // token_expires_at
+    'LINE友だち追加による自動登録'
+  ]);
+
+  // debug_logに記録
+  const debugSheet = ss.getSheetByName('debug_log');
+  if (debugSheet) {
+    debugSheet.appendRow([new Date(), 'LINE_follow_registered', memberId + ' / ' + lineName]);
+  }
+}
+
+// LINE友だち解除処理
+function handleLineUnfollow(event) {
+  const userId = event.source?.userId;
+  if (!userId) return;
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!memSheet) return;
+
+  // LINE IDで検索してステータスを更新
+  const data = memSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][6] === userId) {
+      memSheet.getRange(i + 1, 12).setValue('inactive'); // status
+      memSheet.getRange(i + 1, 19).setValue(data[i][18] + '\n' + new Date().toISOString() + ' LINE友だち解除'); // notes
+      break;
+    }
+  }
+}
+
+// LINEプロフィール取得
+function getLineProfile(userId) {
+  if (!LINE_CHANNEL_ACCESS_TOKEN || LINE_CHANNEL_ACCESS_TOKEN === 'YOUR_LINE_CHANNEL_ACCESS_TOKEN') {
+    throw new Error('LINE Channel Access Token not configured');
+  }
+
+  const url = 'https://api.line.me/v2/bot/profile/' + userId;
+  const options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN
+    },
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  if (response.getResponseCode() !== 200) {
+    throw new Error('Failed to get LINE profile: ' + response.getContentText());
+  }
+
+  return JSON.parse(response.getContentText());
 }
 
 // ===== GETリクエスト処理 =====
