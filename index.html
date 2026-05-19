@@ -2228,8 +2228,20 @@
           <div class="event-summary-seats" id="applyEventSeats"></div>
         </div>
 
+        <!-- LINE友だち追加済みバッジ（?from=line 経由の場合のみ表示） -->
+        <div id="lineAlreadyAddedBadge" style="display: none; margin: 20px 0; padding: 14px 18px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); border-radius: 8px;">
+          <p style="color: white; font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px;" class="ja-only">
+            <span style="font-size: 20px;">✅</span>
+            LINE友だち追加済み — あとは下記の入力だけで完了します
+          </p>
+          <p style="color: white; font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px;" class="en-only">
+            <span style="font-size: 20px;">✅</span>
+            LINE Friend Added — Just fill in the form below to complete
+          </p>
+        </div>
+
         <!-- LINE申し込み（優先） -->
-        <div class="line-section" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); text-align: center; border-radius: 8px;">
+        <div class="line-section" id="lineSection" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); text-align: center; border-radius: 8px;">
           <p style="color: white; font-size: 16px; font-weight: 700; margin-bottom: 8px;" class="ja-only">
             ① LINEで簡単申し込み（おすすめ）
           </p>
@@ -2249,7 +2261,7 @@
         </div>
 
         <!-- 区切り線 -->
-        <div style="display: flex; align-items: center; margin: 24px 0;">
+        <div id="lineEmailSeparator" style="display: flex; align-items: center; margin: 24px 0;">
           <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
           <span style="padding: 0 16px; color: var(--color-sumi-light); font-size: 13px;" class="ja-only">または</span>
           <span style="padding: 0 16px; color: var(--color-sumi-light); font-size: 13px;" class="en-only">or</span>
@@ -2257,10 +2269,10 @@
         </div>
 
         <!-- メール申し込み -->
-        <p style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="ja-only">
+        <p id="emailMethodHeadingJa" style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="ja-only">
           ② メールで申し込み
         </p>
-        <p style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="en-only">
+        <p id="emailMethodHeadingEn" style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="en-only">
           ② Apply via Email
         </p>
 
@@ -3105,6 +3117,21 @@
   // チャネル追跡（LINE/web/email等）
   let userChannel = 'web'; // デフォルト
 
+  // LINE経由モードのUI切替（?from=line でループを防ぐ）
+  function applyLineModeUI() {
+    // 申し込みモーダル
+    const badge = document.getElementById('lineAlreadyAddedBadge');
+    const lineSec = document.getElementById('lineSection');
+    const sep = document.getElementById('lineEmailSeparator');
+    const headJa = document.getElementById('emailMethodHeadingJa');
+    const headEn = document.getElementById('emailMethodHeadingEn');
+    if (badge) badge.style.display = 'block';
+    if (lineSec) lineSec.style.display = 'none';
+    if (sep) sep.style.display = 'none';
+    if (headJa) headJa.style.display = 'none';
+    if (headEn) headEn.style.display = 'none';
+  }
+
   // Check URL parameters on page load (for email verification callback)
   document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -3117,6 +3144,20 @@
     // LINE経由のリファラーチェック
     if (document.referrer.includes('line.me') || document.referrer.includes('lin.ee')) {
       userChannel = 'line';
+    }
+
+    // LINE経由のループ防止: LINEセクションを隠してフォームのみ表示
+    if (userChannel === 'line') {
+      // セッション保持（モーダルを開き直しても継続）
+      try { sessionStorage.setItem('andante_fromLine', '1'); } catch(e) {}
+    }
+    try {
+      if (sessionStorage.getItem('andante_fromLine') === '1') {
+        userChannel = 'line';
+      }
+    } catch(e) {}
+    if (userChannel === 'line') {
+      applyLineModeUI();
     }
 
     const verified = urlParams.get('verified');
