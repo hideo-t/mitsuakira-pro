@@ -2240,42 +2240,6 @@
           </p>
         </div>
 
-        <!-- LINE申し込み（優先） -->
-        <div class="line-section" id="lineSection" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #06C755 0%, #05a648 100%); text-align: center; border-radius: 8px;">
-          <p style="color: white; font-size: 16px; font-weight: 700; margin-bottom: 8px;" class="ja-only">
-            ① LINEで簡単申し込み（おすすめ）
-          </p>
-          <p style="color: white; font-size: 16px; font-weight: 700; margin-bottom: 8px;" class="en-only">
-            ① Easy Application via LINE (Recommended)
-          </p>
-          <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin-bottom: 16px;" class="ja-only">
-            友だち追加後、メッセージで申し込み
-          </p>
-          <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin-bottom: 16px;" class="en-only">
-            Add as friend, then send a message to apply
-          </p>
-          <a href="https://line.me/R/oaMessage/@310gxrod/?%E4%BA%88%E7%B4%84%E3%81%97%E3%81%9F%E3%81%84" target="_blank" class="btn-line" style="background: white; color: #06C755; padding: 12px 32px; text-decoration: none; font-weight: 700; display: inline-block; border-radius: 4px; font-size: 15px;">
-            <span class="ja-only">LINEで申し込む</span>
-            <span class="en-only">Apply via LINE</span>
-          </a>
-        </div>
-
-        <!-- 区切り線 -->
-        <div id="lineEmailSeparator" style="display: flex; align-items: center; margin: 24px 0;">
-          <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
-          <span style="padding: 0 16px; color: var(--color-sumi-light); font-size: 13px;" class="ja-only">または</span>
-          <span style="padding: 0 16px; color: var(--color-sumi-light); font-size: 13px;" class="en-only">or</span>
-          <div style="flex: 1; height: 1px; background: rgba(26,40,64,0.2);"></div>
-        </div>
-
-        <!-- メール申し込み -->
-        <p id="emailMethodHeadingJa" style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="ja-only">
-          ② メールで申し込み
-        </p>
-        <p id="emailMethodHeadingEn" style="text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-edo);" class="en-only">
-          ② Apply via Email
-        </p>
-
         <input type="hidden" id="applyEventId">
         <input type="hidden" id="applyPriceGeneral">
         <input type="hidden" id="applyPriceMember">
@@ -3117,19 +3081,10 @@
   // チャネル追跡（LINE/web/email等）
   let userChannel = 'web'; // デフォルト
 
-  // LINE経由モードのUI切替（?from=line でループを防ぐ）
+  // LINE経由モードのUI切替（?from=line ユーザー向けバッジ表示）
   function applyLineModeUI() {
-    // 申し込みモーダル
     const badge = document.getElementById('lineAlreadyAddedBadge');
-    const lineSec = document.getElementById('lineSection');
-    const sep = document.getElementById('lineEmailSeparator');
-    const headJa = document.getElementById('emailMethodHeadingJa');
-    const headEn = document.getElementById('emailMethodHeadingEn');
     if (badge) badge.style.display = 'block';
-    if (lineSec) lineSec.style.display = 'none';
-    if (sep) sep.style.display = 'none';
-    if (headJa) headJa.style.display = 'none';
-    if (headEn) headEn.style.display = 'none';
   }
 
   // Check URL parameters on page load (for email verification callback)
@@ -3146,9 +3101,8 @@
       userChannel = 'line';
     }
 
-    // LINE経由のループ防止: LINEセクションを隠してフォームのみ表示
+    // LINE経由判定をセッション中保持（モーダルを開き直しても継続）
     if (userChannel === 'line') {
-      // セッション保持（モーダルを開き直しても継続）
       try { sessionStorage.setItem('andante_fromLine', '1'); } catch(e) {}
     }
     try {
@@ -3158,6 +3112,8 @@
     } catch(e) {}
     if (userChannel === 'line') {
       applyLineModeUI();
+      // ?from=line でアクセス時はイベント一覧描画完了後に最初のイベントを自動オープン
+      window.__autoOpenFromLine = true;
     }
 
     const verified = urlParams.get('verified');
@@ -3480,6 +3436,10 @@
               <span class="ja-only">${remainingSeats <= 0 && capacity > 0 ? '満席' : '申し込む'}</span>
               <span class="en-only">${remainingSeats <= 0 && capacity > 0 ? 'Full' : 'Apply'}</span>
             </button>
+            <a href="https://lin.ee/zMR1NuAF" target="_blank" rel="noopener" class="btn btn-line-add" style="background:#06C755;color:#fff;border:1px solid #06C755;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+              <span class="ja-only">LINE友だち追加</span>
+              <span class="en-only">Add LINE</span>
+            </a>
             ${ev.mapUrl || ev.map_url ? `
               <a href="${ev.mapUrl || ev.map_url}" target="_blank" class="btn btn-outline">
                 <span class="ja-only">地図</span>
@@ -3490,6 +3450,19 @@
         </div>
       `;
     }).join('');
+
+    // ?from=line で来た場合、レンダリング完了後に最初の応募可能イベントを自動オープン
+    if (window.__autoOpenFromLine) {
+      window.__autoOpenFromLine = false; // 一度だけ実行
+      const firstOpen = events.find(ev => {
+        const cap = parseInt(ev.capacity) || 0;
+        const sold = parseInt(ev.reserved_count || ev.reservedCount || 0);
+        return cap === 0 || (cap - sold) > 0;
+      });
+      if (firstOpen) {
+        setTimeout(() => openApplyModal(firstOpen), 200);
+      }
+    }
   }
 
   // ============ Event Application Modal (New 3-Step System) ============
