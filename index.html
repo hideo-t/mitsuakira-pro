@@ -3614,6 +3614,44 @@
     document.getElementById('applyStep3').style.display = 'none';
   }
 
+  // 支払い方法の表示用ラベル定義
+  const PAYMENT_LABELS = {
+    cash:   { ja: '現金',             en: 'Cash',          icon: '💴' },
+    paypay: { ja: 'PayPay',           en: 'PayPay',         icon: '📱' },
+    credit: { ja: 'クレジットカード', en: 'Credit Card',   icon: '💳' },
+  };
+
+  // 確認画面用: 支払い方法ブロックのHTMLを生成
+  function renderPaymentBlock(event, isJapanese) {
+    if (!event) return '';
+    const methodsStr = String(event.payment_methods || event.paymentMethods || '').trim();
+    const note = String(event.payment_note || event.paymentNote || '').trim();
+    if (!methodsStr && !note) return '';
+
+    const methods = methodsStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const badges = methods.map(m => {
+      const info = PAYMENT_LABELS[m];
+      if (!info) return '';
+      const label = isJapanese ? info.ja : info.en;
+      return `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:white;border:1px solid rgba(26,40,64,0.15);border-radius:6px;font-size:13px;margin:4px 6px 4px 0;"><span style="font-size:16px;">${info.icon}</span>${label}</span>`;
+    }).filter(Boolean).join('');
+    if (!badges && !note) return '';
+
+    const safeNote = note.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `
+      <div style="margin-top: 20px; padding: 14px 16px; background: rgba(212,148,55,0.08); border-left: 3px solid #d49437; border-radius: 4px;">
+        <div style="font-size:12px;color:var(--color-edo);letter-spacing:0.1em;margin-bottom:8px;font-weight:700;">
+          ${isJapanese ? '■ お支払いについて' : '■ Payment'}
+        </div>
+        ${badges ? `<div style="margin-bottom:${note ? '10px' : '8px'};">${badges}</div>` : ''}
+        ${note ? `<div style="font-size:13px;color:var(--color-edo);line-height:1.6;margin-bottom:8px;">※ ${safeNote}</div>` : ''}
+        <div style="font-size:11px;color:var(--color-sumi-light);">
+          ${isJapanese ? '料金は当日会場にてお支払いください' : 'Payment is due on the day of the event'}
+        </div>
+      </div>
+    `;
+  }
+
   function showConfirmStep() {
     const isJapanese = document.body.classList.contains('lang-ja');
 
@@ -3676,6 +3714,7 @@
           ${isJapanese ? 'この申し込みと同時にサポーター登録を行います' : 'You will also be registered as a supporter'}
         </div>
       ` : ''}
+      ${renderPaymentBlock(currentEvent, isJapanese)}
     `;
 
     document.getElementById('confirmDetails').innerHTML = confirmHtml;
