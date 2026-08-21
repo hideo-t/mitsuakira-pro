@@ -1217,6 +1217,9 @@
   .event-detail-value {
     color: var(--color-edo);
     line-height: 1.7;
+    /* 地図 iframe が既定の 300px に縮まないよう、行の残り幅を受け取る */
+    flex: 1;
+    min-width: 0;
   }
 
   /* 開場・開演の行だけは他より一段強く出す */
@@ -1233,6 +1236,108 @@
 
   .event-detail-value a:hover {
     text-decoration: underline;
+  }
+
+  /* ---- 会場（会場名 / 住所 / 地図） ---- */
+
+  .event-detail-row .venue-name {
+    display: block;
+    font-weight: 700;
+  }
+
+  .venue-address {
+    display: block;
+    margin-top: 2px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(31, 41, 55, 0.82);
+  }
+
+  .venue-map {
+    display: block;
+    margin-top: 8px;
+  }
+
+  /* 地図はクリックされるまで iframe を作らない（カード6枚分の同時読み込みを避ける） */
+  .map-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-hi);
+    background: transparent;
+    border: 1px solid rgba(155, 17, 30, 0.35);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .map-toggle:hover {
+    background: rgba(155, 17, 30, 0.06);
+    border-color: rgba(155, 17, 30, 0.6);
+  }
+
+  .map-toggle:focus-visible {
+    outline: 2px solid var(--color-hi);
+    outline-offset: 2px;
+  }
+
+  .map-toggle-icon {
+    font-size: 11px;
+    transition: transform 0.2s ease;
+  }
+
+  .map-toggle[aria-expanded="true"] .map-toggle-icon {
+    transform: rotate(90deg);
+  }
+
+  .map-embed {
+    display: block;
+    margin-top: 10px;
+    border: 1px solid rgba(31, 41, 55, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .map-embed[hidden] {
+    display: none;
+  }
+
+  .map-embed iframe {
+    display: block;
+    width: 100%;
+    height: 260px;
+    border: 0;
+  }
+
+  .map-external {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+
+  .venue-site {
+    display: inline-block;
+    margin-top: 8px;
+    margin-left: 16px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 640px) {
+    /* スマホでは「会場」ラベルを上に逃がして、地図に横幅を全部渡す */
+    .event-detail-row--venue {
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .map-embed iframe {
+      height: 220px;
+    }
   }
 
   .event-special {
@@ -3397,6 +3502,41 @@
       : dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
   }
 
+  // 地図はクリックされて初めて iframe を差し込む。
+  // カードが6枚あるので、常時埋め込みだと地図を6つ同時に読み込むことになる。
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest && e.target.closest('.map-toggle');
+    if (!btn) return;
+
+    const wrap = btn.parentElement;
+    const box = wrap.querySelector('.map-embed');
+    const label = btn.querySelector('.map-toggle-label');
+    const isJapanese = document.body.classList.contains('lang-ja');
+    const open = btn.getAttribute('aria-expanded') === 'true';
+
+    if (open) {
+      box.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      if (label) label.textContent = isJapanese ? '地図を開く' : 'Show map';
+      return;
+    }
+
+    if (!box.querySelector('iframe')) {
+      const q = btn.dataset.mapQuery;
+      const iframe = document.createElement('iframe');
+      // loading="lazy" は付けない。ボタンが押された時点で「今見たい地図」なので、
+      // 遅延読み込み扱いにすると画面外判定で読み込まれないことがある。
+      iframe.src = `https://maps.google.com/maps?q=${q}&hl=${isJapanese ? 'ja' : 'en'}&z=16&output=embed`;
+      iframe.referrerPolicy = 'no-referrer-when-downgrade';
+      iframe.title = isJapanese ? '会場の地図' : 'Venue map';
+      box.appendChild(iframe);
+    }
+
+    box.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    if (label) label.textContent = isJapanese ? '地図を閉じる' : 'Hide map';
+  });
+
   function renderEvents(events) {
     const grid = document.getElementById('eventsGrid');
     const isJapanese = document.body.classList.contains('lang-ja');
@@ -3430,6 +3570,10 @@
 
       // Use venue_name if available, fallback to venue
       const venueName = ev.venue_name || ev.venue || '';
+      // シートの列名は venue_address。ev.address しか見ておらず住所が出ていなかった。
+      const venueAddress = ev.venue_address || ev.address || '';
+      // 住所が空の会場でも会場名だけで地図は引ける
+      const mapQuery = encodeURIComponent(venueAddress || venueName);
 
       return `
         <div class="event-card">
@@ -3448,11 +3592,21 @@
                 <span class="event-detail-value">${isJapanese ? '開場' : 'Open'} ${ev.openTime || ev.time_open} / ${isJapanese ? '開演' : 'Start'} ${ev.startTime || ev.time_start}</span>
               </div>
             ` : ''}
-            <div class="event-detail-row">
+            <div class="event-detail-row event-detail-row--venue">
               <span class="event-detail-label">${isJapanese ? '会場' : 'Venue'}</span>
               <span class="event-detail-value">
-                ${venueName}${ev.address ? `<br>${ev.address}` : ''}
-                ${ev.venueUrl || ev.venue_url ? `<br><a href="${ev.venueUrl || ev.venue_url}" target="_blank">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
+                <span class="venue-name">${venueName}</span>
+                ${venueAddress ? `<span class="venue-address">${venueAddress}</span>` : ''}
+                ${mapQuery ? `
+                  <span class="venue-map">
+                    <button type="button" class="map-toggle" data-map-query="${mapQuery}" aria-expanded="false">
+                      <span class="map-toggle-icon" aria-hidden="true">▸</span><span class="map-toggle-label">${isJapanese ? '地図を開く' : 'Show map'}</span>
+                    </button>
+                    <span class="map-embed" hidden></span>
+                    <a class="map-external" href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" rel="noopener">${isJapanese ? 'Googleマップで開く' : 'Open in Google Maps'} →</a>
+                  </span>
+                ` : ''}
+                ${ev.venueUrl || ev.venue_url ? `<a class="venue-site" href="${ev.venueUrl || ev.venue_url}" target="_blank" rel="noopener">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
               </span>
             </div>
             ${priceText ? `
@@ -3546,7 +3700,10 @@
     const dateStr = `${formatEventDate(dateObj, isJapanese)} ${event.startTime || event.time_start || ''}`.trim();
 
     const venueName = event.venue_name || event.venue || '';
-    document.getElementById('applyEventInfo').textContent = `${dateStr} @ ${venueName}`;
+    const venueAddress = event.venue_address || event.address || '';
+    // 申込確認でも住所まで見せる（当日の行き先確認がここで完結するように）
+    document.getElementById('applyEventInfo').textContent =
+      `${dateStr} @ ${venueName}${venueAddress ? `（${venueAddress}）` : ''}`;
 
     // Price display
     let priceDisplay = '';
