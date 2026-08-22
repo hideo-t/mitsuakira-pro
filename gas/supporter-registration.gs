@@ -86,9 +86,9 @@ function setupTestData() {
       'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
       'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
       'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
-      'status', 'image_url', 'created_at', 'updated_at'
+      'status', 'image_url', 'created_at', 'updated_at', 'program'
     ]);
-    eventsSheet.getRange(1, 1, 1, 22).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventsSheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     eventsSheet.setFrozenRows(1);
     console.log('eventsシートを作成しました');
   }
@@ -105,7 +105,7 @@ function setupTestData() {
     }
   }
 
-  // カラム順序: saveEventと同じ（22列）
+  // カラム順序: saveEventと同じ（23列目 program は未設定のまま残す）
   const testEventData = [
     testEventId,                                // 0: event_id
     '第1回落語【風と曼荼羅】',                      // 1: title
@@ -1299,7 +1299,8 @@ function getPublicEvents() {
           price_member: data[i][14],
           price_includes: data[i][15],
           status: status,
-          image_url: data[i][19]
+          image_url: data[i][19],
+          program: data[i][22] || ''   // 出し物（23列目・末尾追加）
         });
       }
     }
@@ -1340,7 +1341,8 @@ function getAllEvents() {
       status: data[i][18],
       image_url: data[i][19],
       created_at: data[i][20],
-      updated_at: data[i][21]
+      updated_at: data[i][21],
+      program: data[i][22] || ''   // 出し物（23列目・末尾追加）
     });
   }
 
@@ -1468,9 +1470,9 @@ function saveEvent(data) {
       'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
       'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
       'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
-      'status', 'image_url', 'created_at', 'updated_at'
+      'status', 'image_url', 'created_at', 'updated_at', 'program'
     ]);
-    sheet.getRange(1, 1, 1, 22).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
   }
 
@@ -1498,6 +1500,7 @@ function saveEvent(data) {
         sheet.getRange(row, 19).setValue(data.status);
         sheet.getRange(row, 20).setValue(data.imageUrl || '');
         sheet.getRange(row, 22).setValue(now);
+        sheet.getRange(row, 23).setValue(data.program || '');   // 出し物
         return { success: true, eventId: data.eventId };
       }
     }
@@ -1527,7 +1530,8 @@ function saveEvent(data) {
       data.status || 'draft',
       data.imageUrl || '',
       now,
-      now
+      now,
+      data.program || ''   // 出し物（23列目）
     ]);
     return { success: true, eventId: eventId };
   }
@@ -2010,9 +2014,9 @@ function testSetup() {
       'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
       'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
       'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
-      'status', 'image_url', 'created_at', 'updated_at'
+      'status', 'image_url', 'created_at', 'updated_at', 'program'
     ]);
-    eventSheet.getRange(1, 1, 1, 22).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventSheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     eventSheet.setFrozenRows(1);
   }
 

@@ -3594,6 +3594,9 @@
       // 料金行の表示条件を priceText だけにすると、その回は料金行ごと消える。
       const priceIncludes = ev.price_includes || ev.priceIncludes || '';
 
+      // 出し物（演目）。events シート末尾に追加した program 列。
+      const program = ev.program || ev.出し物 || '';
+
       // Use venue_name if available, fallback to venue
       const venueName = ev.venue_name || ev.venue || '';
       // シートの列名は venue_address。ev.address しか見ておらず住所が出ていなかった。
@@ -3644,6 +3647,12 @@
                 </span>
               </div>
             ` : ''}
+            ${program ? `
+              <div class="event-detail-row">
+                <span class="event-detail-label">${isJapanese ? '出し物' : 'Program'}</span>
+                <span class="event-detail-value">${program.replace(/\n/g, '<br>')}</span>
+              </div>
+            ` : ''}
             ${seatsText ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '席数' : 'Seats'}</span>
@@ -3655,12 +3664,6 @@
               <span class="event-detail-label">${isJapanese ? '出演' : 'Performer'}</span>
               <span class="event-detail-value">${ev.performer}</span>
             </div>
-            ` : ''}
-            ${ev.program ? `
-              <div class="event-detail-row">
-                <span class="event-detail-label">${isJapanese ? '演目' : 'Program'}</span>
-                <span class="event-detail-value">${ev.program.replace(/\n/g, '<br>')}</span>
-              </div>
             ` : ''}
             ${ev.mapUrl || ev.map_url ? `
               <div class="event-detail-row">

@@ -452,9 +452,18 @@
         </div>
       </div>
 
+      <!-- この欄は price_includes 列に保存される。「演目」と表示されていたが
+           実際に入っていたのは木戸銭の但し書きなので、ラベルを実態に合わせた。 -->
       <div class="form-row full">
         <div class="form-group">
-          <label for="eventProgram">演目</label>
+          <label for="eventPriceIncludes">料金内訳・但し書き</label>
+          <textarea id="eventPriceIncludes" placeholder="木戸銭：2,000円（ワンドリンク付） / 入場無料"></textarea>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventProgram">出し物</label>
           <textarea id="eventProgram" placeholder="「たらちね」「蒟蒻問答」"></textarea>
         </div>
       </div>
@@ -639,7 +648,8 @@
       document.getElementById('eventPrice').value = eventData.price_general || '';
       document.getElementById('eventCapacity').value = eventData.capacity || '';
       document.getElementById('eventPerformer').value = eventData.description || '';
-      document.getElementById('eventProgram').value = eventData.price_includes || '';
+      document.getElementById('eventPriceIncludes').value = eventData.price_includes || '';
+      document.getElementById('eventProgram').value = eventData.program || '';
       document.getElementById('eventContact').value = '';
       document.getElementById('eventSpecial').value = '';
       document.getElementById('eventStatus').value = eventData.status || 'draft';
@@ -684,6 +694,7 @@
     document.getElementById('eventPrice').value = '';
     document.getElementById('eventCapacity').value = '';
     document.getElementById('eventPerformer').value = '';
+    document.getElementById('eventPriceIncludes').value = '';
     document.getElementById('eventProgram').value = '';
     document.getElementById('eventContact').value = '';
     document.getElementById('eventSpecial').value = '';
@@ -719,7 +730,8 @@
       capacity: document.getElementById('eventCapacity').value,
       priceGeneral: document.getElementById('eventPrice').value,
       priceMember: '',
-      priceIncludes: document.getElementById('eventProgram').value,
+      priceIncludes: document.getElementById('eventPriceIncludes').value,
+      program: document.getElementById('eventProgram').value,
       status: document.getElementById('eventStatus').value,
       imageUrl: document.getElementById('eventImageUrl').value
     };
