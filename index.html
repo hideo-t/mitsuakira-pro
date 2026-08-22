@@ -1253,6 +1253,28 @@
     color: rgba(31, 41, 55, 0.82);
   }
 
+  /* ---- 料金（金額 / 内訳） ---- */
+
+  .price-main {
+    display: block;
+  }
+
+  /* price_includes は「木戸銭：2,000円（ワンドリンク付）」のような但し書き。
+     金額より一段落として、内訳であることを見た目で分からせる。 */
+  .price-includes {
+    display: block;
+    margin-top: 2px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(31, 41, 55, 0.82);
+  }
+
+  /* 金額が無く但し書きだけの回（入場無料など）は、それが主役なので落とさない */
+  .price-includes:first-child {
+    font-size: inherit;
+    color: inherit;
+  }
+
   .venue-map {
     display: block;
     margin-top: 8px;
@@ -3568,6 +3590,10 @@
         }
       }
 
+      // 「入場無料」の回は price_general が空で price_includes にしか情報がない。
+      // 料金行の表示条件を priceText だけにすると、その回は料金行ごと消える。
+      const priceIncludes = ev.price_includes || ev.priceIncludes || '';
+
       // Use venue_name if available, fallback to venue
       const venueName = ev.venue_name || ev.venue || '';
       // シートの列名は venue_address。ev.address しか見ておらず住所が出ていなかった。
@@ -3609,10 +3635,13 @@
                 ${ev.venueUrl || ev.venue_url ? `<a class="venue-site" href="${ev.venueUrl || ev.venue_url}" target="_blank" rel="noopener">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
               </span>
             </div>
-            ${priceText ? `
+            ${priceText || priceIncludes ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '料金' : 'Price'}</span>
-                <span class="event-detail-value">${priceText}</span>
+                <span class="event-detail-value">
+                  ${priceText ? `<span class="price-main">${priceText}</span>` : ''}
+                  ${priceIncludes ? `<span class="price-includes">${priceIncludes.replace(/\n/g, '<br>')}</span>` : ''}
+                </span>
               </div>
             ` : ''}
             ${seatsText ? `
