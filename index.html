@@ -1253,27 +1253,6 @@
     color: rgba(31, 41, 55, 0.82);
   }
 
-  /* ---- 料金（金額 / 内訳） ---- */
-
-  .price-main {
-    display: block;
-  }
-
-  /* price_includes は「木戸銭：2,000円（ワンドリンク付）」のような但し書き。
-     金額より一段落として、内訳であることを見た目で分からせる。 */
-  .price-includes {
-    display: block;
-    margin-top: 2px;
-    font-size: 15px;
-    line-height: 1.7;
-    color: rgba(31, 41, 55, 0.82);
-  }
-
-  /* 金額が無く但し書きだけの回（入場無料など）は、それが主役なので落とさない */
-  .price-includes:first-child {
-    font-size: inherit;
-    color: inherit;
-  }
 
   .venue-map {
     display: block;
@@ -3559,6 +3538,27 @@
     if (label) label.textContent = isJapanese ? '地図を閉じる' : 'Hide map';
   });
 
+  // price_includes には「木戸銭：5,000円（食事付き／追加注文別料金）」のように
+  // 金額と但し書きが混ざって入っている。料金行を1行に収めるため、
+  // 金額（priceText と重複する部分）を落として但し書きだけ取り出す。
+  function extractPriceNote(raw) {
+    let s = String(raw || '').trim();
+    if (!s) return '';
+
+    // 全体が括弧で囲まれていれば外す
+    const wrapped = /^[（(]([\s\S]+)[）)]$/.exec(s);
+    if (wrapped) s = wrapped[1].trim();
+
+    // 「木戸銭：5,000円」のように金額を言い直しているだけなら捨てる
+    if (/^(?:木戸銭|料金|入場料|参加費)\s*[:：]\s*[¥￥]?[\d,，]+\s*円?\s*$/.test(s)) return '';
+
+    // 「木戸銭：5,000円（食事付き／追加注文別料金）」→ 括弧の中身だけ
+    const withAmount = /^(?:木戸銭|料金|入場料|参加費)\s*[:：].*?[（(]([\s\S]+)[）)]\s*$/.exec(s);
+    if (withAmount) return withAmount[1].trim();
+
+    return s;
+  }
+
   function renderEvents(events) {
     const grid = document.getElementById('eventsGrid');
     const isJapanese = document.body.classList.contains('lang-ja');
@@ -3592,7 +3592,12 @@
 
       // 「入場無料」の回は price_general が空で price_includes にしか情報がない。
       // 料金行の表示条件を priceText だけにすると、その回は料金行ごと消える。
-      const priceIncludes = ev.price_includes || ev.priceIncludes || '';
+      const priceNote = extractPriceNote(ev.price_includes || ev.priceIncludes);
+
+      // 料金は1行。金額と但し書きがあれば「一般 ¥5,000（軽食・ワンドリンク付き）」
+      const priceLine = priceText && priceNote
+        ? `${priceText}（${priceNote}）`
+        : (priceText || priceNote);
 
       // 出し物（演目）。events シート末尾に追加した program 列。
       const program = ev.program || ev.出し物 || '';
@@ -3638,13 +3643,10 @@
                 ${ev.venueUrl || ev.venue_url ? `<a class="venue-site" href="${ev.venueUrl || ev.venue_url}" target="_blank" rel="noopener">${isJapanese ? '会場サイト' : 'Venue Site'}</a>` : ''}
               </span>
             </div>
-            ${priceText || priceIncludes ? `
+            ${priceLine ? `
               <div class="event-detail-row">
                 <span class="event-detail-label">${isJapanese ? '料金' : 'Price'}</span>
-                <span class="event-detail-value">
-                  ${priceText ? `<span class="price-main">${priceText}</span>` : ''}
-                  ${priceIncludes ? `<span class="price-includes">${priceIncludes.replace(/\n/g, '<br>')}</span>` : ''}
-                </span>
+                <span class="event-detail-value">${priceLine.replace(/\n/g, ' ')}</span>
               </div>
             ` : ''}
             ${program ? `
