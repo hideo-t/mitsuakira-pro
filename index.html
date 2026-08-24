@@ -1115,6 +1115,125 @@
     color: var(--color-sumi-light);
   }
 
+  .events-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+
+  .events-tab {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--color-sumi-light);
+    background: transparent;
+    border: 1px solid rgba(26, 40, 64, 0.15);
+    border-radius: 999px;
+    padding: 10px 26px;
+    cursor: pointer;
+    transition: color 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  }
+
+  .events-tab:hover {
+    color: var(--color-hi);
+    border-color: rgba(139, 10, 26, 0.4);
+  }
+
+  .events-tab.is-active {
+    color: var(--color-base);
+    background: var(--color-hi);
+    border-color: var(--color-hi);
+  }
+
+  /* 「これまでの公演」は申し込み導線がないので、カードではなく年表として並べる */
+  .past-events {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .past-list {
+    list-style: none;
+    border-top: 1px solid rgba(26, 40, 64, 0.12);
+  }
+
+  .past-item {
+    display: flex;
+    gap: 24px;
+    padding: 20px 4px;
+    border-bottom: 1px solid rgba(26, 40, 64, 0.12);
+  }
+
+  .past-date {
+    flex-shrink: 0;
+    width: 116px;
+    font-family: var(--en-serif);
+    color: var(--color-hi);
+    line-height: 1.3;
+  }
+
+  .past-date .past-ymd {
+    display: block;
+    font-size: 20px;
+    letter-spacing: 0.04em;
+  }
+
+  .past-date .past-dow {
+    display: block;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--color-sumi-light);
+  }
+
+  .past-title {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--color-edo);
+    margin-bottom: 6px;
+  }
+
+  .past-meta {
+    font-size: 15px;
+    color: var(--color-sumi-light);
+    line-height: 1.7;
+  }
+
+  .past-program {
+    font-size: 15px;
+    color: var(--color-edo);
+    margin-top: 4px;
+  }
+
+  .past-year-head {
+    font-family: var(--en-serif);
+    font-size: 26px;
+    color: var(--color-edo);
+    letter-spacing: 0.08em;
+    margin: 40px 0 8px;
+  }
+
+  .past-year-head:first-child {
+    margin-top: 0;
+  }
+
+  @media (max-width: 600px) {
+    .past-item {
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .past-date {
+      width: auto;
+    }
+
+    .past-date .past-ymd,
+    .past-date .past-dow {
+      display: inline;
+      margin-right: 8px;
+    }
+  }
+
   .events-grid {
     display: grid;
     gap: 32px;
@@ -2374,9 +2493,25 @@
       <span class="en-only">Event Information</span>
     </h2>
 
-    <div class="events-grid" id="eventsGrid">
+    <div class="events-tabs reveal" role="tablist">
+      <button type="button" class="events-tab is-active" id="tabUpcoming" role="tab" aria-selected="true" aria-controls="eventsGrid" onclick="switchEventsTab('upcoming')">
+        <span class="ja-only">今後の公演</span>
+        <span class="en-only">Upcoming</span>
+      </button>
+      <button type="button" class="events-tab" id="tabPast" role="tab" aria-selected="false" aria-controls="pastEventsList" onclick="switchEventsTab('past')">
+        <span class="ja-only">これまでの公演</span>
+        <span class="en-only">Past</span>
+      </button>
+    </div>
+
+    <div class="events-grid" id="eventsGrid" role="tabpanel" aria-labelledby="tabUpcoming">
       <div class="events-loading ja-only">イベント情報を読み込み中...</div>
       <div class="events-loading en-only">Loading events...</div>
+    </div>
+
+    <div class="past-events" id="pastEventsList" role="tabpanel" aria-labelledby="tabPast" hidden>
+      <div class="events-loading ja-only">これまでの公演を読み込み中...</div>
+      <div class="events-loading en-only">Loading past events...</div>
     </div>
   </div>
 </section>
@@ -3477,6 +3612,111 @@
 
   // Load public events on page load
   document.addEventListener('DOMContentLoaded', loadPublicEvents);
+
+  // 「これまでの公演」は開かれるまで取りに行かない（初回表示を重くしないため）
+  let pastEventsLoaded = false;
+
+  function switchEventsTab(which) {
+    const isPast = which === 'past';
+    const tabUpcoming = document.getElementById('tabUpcoming');
+    const tabPast = document.getElementById('tabPast');
+    const grid = document.getElementById('eventsGrid');
+    const past = document.getElementById('pastEventsList');
+
+    tabUpcoming.classList.toggle('is-active', !isPast);
+    tabPast.classList.toggle('is-active', isPast);
+    tabUpcoming.setAttribute('aria-selected', String(!isPast));
+    tabPast.setAttribute('aria-selected', String(isPast));
+    grid.hidden = isPast;
+    past.hidden = !isPast;
+
+    if (isPast && !pastEventsLoaded) {
+      pastEventsLoaded = true;
+      loadPastEvents();
+    }
+  }
+
+  async function loadPastEvents() {
+    const list = document.getElementById('pastEventsList');
+
+    try {
+      const response = await fetch(`${GAS_URL}?action=getPastEvents`);
+      if (!response.ok) throw new Error('Failed to load');
+      const data = await response.json();
+      if (data.events && data.events.length > 0) {
+        renderPastEvents(data.events);
+      } else {
+        list.innerHTML = `
+          <div class="no-events">
+            <div class="no-events-icon">🎭</div>
+            <p class="no-events-text ja-only">これまでの公演記録はまだありません</p>
+            <p class="no-events-text en-only">No past performances recorded yet</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      // 取得できなかったときに再度開けばやり直せるようにする
+      pastEventsLoaded = false;
+      list.innerHTML = `
+        <div class="no-events">
+          <div class="no-events-icon">🎭</div>
+          <p class="no-events-text ja-only">これまでの公演を取得できませんでした</p>
+          <p class="no-events-text en-only">Could not load past performances</p>
+        </div>
+      `;
+    }
+  }
+
+  function renderPastEvents(events) {
+    const list = document.getElementById('pastEventsList');
+    const isJapanese = document.body.classList.contains('lang-ja');
+
+    let html = '';
+    let currentYear = null;
+    let openList = false;
+
+    events.forEach(ev => {
+      const dateObj = parseEventDate(ev.date);
+      const year = isNaN(dateObj) ? null : dateObj.getFullYear();
+
+      if (year !== currentYear) {
+        if (openList) html += '</ol>';
+        currentYear = year;
+        html += `<h3 class="past-year-head">${year || ''}</h3><ol class="past-list">`;
+        openList = true;
+      }
+
+      const md = isNaN(dateObj)
+        ? escapeHtml(ev.date || '')
+        : `${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')}`;
+      const dow = isNaN(dateObj)
+        ? ''
+        : (isJapanese ? `（${WEEKDAY_JA[dateObj.getDay()]}）` : dateObj.toLocaleDateString('en-US', { weekday: 'short' }));
+
+      const venue = [ev.venue_name, ev.venue_address].filter(Boolean).join(' / ');
+      // 主催は入っているときだけ出す。未入力の回に三晶主催と書いてしまわないようにする。
+      const organizer = (ev.organizer || '').trim();
+
+      html += `
+        <li class="past-item">
+          <div class="past-date">
+            <span class="past-ymd">${md}</span>
+            ${dow ? `<span class="past-dow">${dow}</span>` : ''}
+            ${ev.time_start ? `<span class="past-dow">${ev.time_start}</span>` : ''}
+          </div>
+          <div class="past-body">
+            <h4 class="past-title">${escapeHtml(ev.title || '')}</h4>
+            ${venue ? `<p class="past-meta">${escapeHtml(venue)}</p>` : ''}
+            ${ev.program ? `<p class="past-program">${escapeHtml(ev.program).replace(/\n/g, '<br>')}</p>` : ''}
+            ${organizer ? `<p class="past-meta">${isJapanese ? '主催' : 'Organizer'}: ${escapeHtml(organizer)}</p>` : ''}
+          </div>
+        </li>
+      `;
+    });
+
+    if (openList) html += '</ol>';
+    list.innerHTML = html;
+  }
 
   async function loadPublicEvents() {
     const grid = document.getElementById('eventsGrid');
