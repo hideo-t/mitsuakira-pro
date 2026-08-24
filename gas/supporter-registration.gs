@@ -20,6 +20,12 @@ const LINE_CHANNEL_ACCESS_TOKEN = '4ZAB3Fu5GqbH4LqC3bIS4Z3lFZg9v0SwnMajMFib33usc
 // シート名
 const SHEET_MEMBERS = 'members';
 const SHEET_EVENTS = 'events';
+
+// events シートの列数。24: organizer（主催）, 25: contact（問い合わせ先）を末尾に追加した。
+const EVENT_COL_COUNT = 25;
+// 主催が自社かどうかの判定に使う語。ここに該当しない主催名は「外部主催」として扱い、
+// サイト側では申し込みボタンではなく問い合わせ先を出す。
+const OWN_ORGANIZER_PATTERN = /三晶|円左衛門|mitsuakira/i;
 const SHEET_RESERVATIONS = 'reservations';
 const SHEET_EMAIL_LOG = 'email_log';
 const SHEET_ADMIN = '管理者マスタ';
@@ -86,9 +92,10 @@ function setupTestData() {
       'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
       'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
       'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
-      'status', 'image_url', 'created_at', 'updated_at', 'program'
+      'status', 'image_url', 'created_at', 'updated_at', 'program',
+      'organizer', 'contact'
     ]);
-    eventsSheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventsSheet.getRange(1, 1, 1, EVENT_COL_COUNT).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     eventsSheet.setFrozenRows(1);
     console.log('eventsシートを作成しました');
   }
@@ -105,7 +112,7 @@ function setupTestData() {
     }
   }
 
-  // カラム順序: saveEventと同じ（23列目 program は未設定のまま残す）
+  // カラム順序: saveEventと同じ（23列目 program / 25列目 contact は未設定のまま残す）
   const testEventData = [
     testEventId,                                // 0: event_id
     '第1回落語【風と曼荼羅】',                      // 1: title
@@ -128,7 +135,10 @@ function setupTestData() {
     'published',                                // 18: status
     '',                                         // 19: image_url
     new Date(),                                 // 20: created_at
-    new Date()                                  // 21: updated_at
+    new Date(),                                 // 21: updated_at
+    '',                                         // 22: program
+    '三晶プロダクション',                          // 23: organizer（主催）
+    ''                                          // 24: contact（問い合わせ先）
   ];
 
   if (eventRowIndex > 0) {
@@ -1233,6 +1243,24 @@ function completeRegistration(data) {
 }
 
 // ===== イベント関連 =====
+// 既存の events シート（23列時代）に organizer / contact のヘッダを後付けする。
+// 値のない既存行は空欄のまま = 自主公演扱いになるので移行時の書き換えは不要。
+function ensureEventColumns_(sheet) {
+  if (!sheet) return;
+  const header = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), EVENT_COL_COUNT)).getValues()[0];
+  if (header[23] !== 'organizer' || header[24] !== 'contact') {
+    sheet.getRange(1, 24, 1, 2).setValues([['organizer', 'contact']]);
+    sheet.getRange(1, 1, 1, EVENT_COL_COUNT).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+  }
+}
+
+// スプレッドシート上から一度だけ手動実行する移行用エントリポイント。
+function migrateAddOrganizerColumns() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  ensureEventColumns_(ss.getSheetByName(SHEET_EVENTS));
+  console.log('events シートに organizer / contact 列を追加しました');
+}
+
 function getEventById(eventId) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_EVENTS);
@@ -1263,7 +1291,10 @@ function getEventById(eventId) {
         status: data[i][18],
         image_url: data[i][19],
         created_at: data[i][20],
-        updated_at: data[i][21]
+        updated_at: data[i][21],
+        program: data[i][22] || '',
+        organizer: data[i][23] || '',   // 主催（24列目）
+        contact: data[i][24] || ''      // 問い合わせ先（25列目）
       };
     }
   }
@@ -1300,7 +1331,9 @@ function getPublicEvents() {
           price_includes: data[i][15],
           status: status,
           image_url: data[i][19],
-          program: data[i][22] || ''   // 出し物（23列目・末尾追加）
+          program: data[i][22] || '',  // 出し物（23列目）
+          organizer: data[i][23] || '',  // 主催（24列目）
+          contact: data[i][24] || ''     // 問い合わせ先（25列目・外部主催のとき表示）
         });
       }
     }
@@ -1342,7 +1375,9 @@ function getAllEvents() {
       image_url: data[i][19],
       created_at: data[i][20],
       updated_at: data[i][21],
-      program: data[i][22] || ''   // 出し物（23列目・末尾追加）
+      program: data[i][22] || '',  // 出し物（23列目）
+      organizer: data[i][23] || '',  // 主催（24列目）
+      contact: data[i][24] || ''     // 問い合わせ先（25列目）
     });
   }
 
@@ -1470,11 +1505,13 @@ function saveEvent(data) {
       'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
       'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
       'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
-      'status', 'image_url', 'created_at', 'updated_at', 'program'
+      'status', 'image_url', 'created_at', 'updated_at', 'program',
+      'organizer', 'contact'
     ]);
-    sheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    sheet.getRange(1, 1, 1, EVENT_COL_COUNT).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     sheet.setFrozenRows(1);
   }
+  ensureEventColumns_(sheet);
 
   const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
 
@@ -1501,6 +1538,8 @@ function saveEvent(data) {
         sheet.getRange(row, 20).setValue(data.imageUrl || '');
         sheet.getRange(row, 22).setValue(now);
         sheet.getRange(row, 23).setValue(data.program || '');   // 出し物
+        sheet.getRange(row, 24).setValue(data.organizer || '');  // 主催
+        sheet.getRange(row, 25).setValue(data.contact || '');    // 問い合わせ先
         return { success: true, eventId: data.eventId };
       }
     }
@@ -1531,7 +1570,9 @@ function saveEvent(data) {
       data.imageUrl || '',
       now,
       now,
-      data.program || ''   // 出し物（23列目）
+      data.program || '',    // 出し物（23列目）
+      data.organizer || '',  // 主催（24列目）
+      data.contact || ''     // 問い合わせ先（25列目）
     ]);
     return { success: true, eventId: eventId };
   }
@@ -2014,9 +2055,10 @@ function testSetup() {
       'event_id', 'title', 'description', 'date', 'time_open', 'time_start', 'time_end',
       'venue_name', 'venue_address', 'venue_access', 'capacity', 'reserved_count', 'waitlist_count',
       'price_general', 'price_member', 'price_includes', 'accept_start', 'accept_end',
-      'status', 'image_url', 'created_at', 'updated_at', 'program'
+      'status', 'image_url', 'created_at', 'updated_at', 'program',
+      'organizer', 'contact'
     ]);
-    eventSheet.getRange(1, 1, 1, 23).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
+    eventSheet.getRange(1, 1, 1, EVENT_COL_COUNT).setFontWeight('bold').setBackground('#1A2840').setFontColor('#FFFFFF');
     eventSheet.setFrozenRows(1);
   }
 

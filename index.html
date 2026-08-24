@@ -1351,6 +1351,32 @@
     line-height: 1.7;
   }
 
+  /* 主催が三晶以外のイベントは申し込みを受けられないので、
+     申し込みボタンの代わりにこのブロックで主催者の連絡先を出す。 */
+  .event-contact {
+    background: rgba(26, 40, 64, 0.05);
+    border-left: 3px solid var(--color-edo);
+    padding: 16px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--color-edo);
+    line-height: 1.7;
+  }
+
+  .event-contact-lead {
+    margin-bottom: 8px;
+  }
+
+  .event-contact-detail {
+    font-size: 15px;
+    word-break: break-word;
+  }
+
+  .event-contact-detail a {
+    color: var(--color-hi);
+    font-weight: 500;
+  }
+
   .event-card-footer {
     padding: 0 24px 24px;
     display: flex;
@@ -3541,6 +3567,44 @@
   // price_includes には「木戸銭：5,000円（食事付き／追加注文別料金）」のように
   // 金額と但し書きが混ざって入っている。料金行を1行に収めるため、
   // 金額（priceText と重複する部分）を落として但し書きだけ取り出す。
+  // 主催が三晶（自主公演）かどうか。空欄は従来どおり自主公演として扱う。
+  const OWN_ORGANIZER_PATTERN = /三晶|円左衛門|mitsuakira/i;
+  function isOwnOrganizer(organizer) {
+    const name = (organizer || '').trim();
+    return !name || OWN_ORGANIZER_PATTERN.test(name);
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // 連絡先テキスト中の URL・メール・電話番号をリンクにする。
+  // 3種を1本の正規表現で同時に拾い、URL の中の @ や数字を二重変換しないようにしている。
+  const CONTACT_LINK_PATTERN = /(https?:\/\/[^\s<]+)|([\w.+-]+@[\w-]+(?:\.[\w-]+)+)|(0\d{1,3}[-\uFF0D]?\d{2,4}[-\uFF0D]?\d{3,4})/g;
+  function linkifyContact(raw) {
+    return escapeHtml(raw)
+      .replace(CONTACT_LINK_PATTERN, (m, url, mail, tel) => {
+        if (url) return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+        if (mail) return `<a href="mailto:${mail}">${mail}</a>`;
+        return `<a href="tel:${tel.replace(/[-\uFF0D]/g, '')}">${tel}</a>`;
+      })
+      .replace(/\n/g, '<br>');
+  }
+
+  // 連絡先から最初に見つかった1件を、フッターのボタン用に取り出す。
+  function primaryContactLink(raw, isJapanese) {
+    const text = String(raw || '');
+    const url = text.match(/https?:\/\/[^\s<]+/);
+    if (url) return { href: url[0], label: isJapanese ? '主催者サイト' : 'Organizer Site', external: true };
+    const mail = text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/);
+    if (mail) return { href: `mailto:${mail[0]}`, label: isJapanese ? 'メールで問い合わせ' : 'Email Organizer', external: false };
+    const tel = text.match(/0\d{1,3}[-\uFF0D]?\d{2,4}[-\uFF0D]?\d{3,4}/);
+    if (tel) return { href: `tel:${tel[0].replace(/[-\uFF0D]/g, '')}`, label: isJapanese ? '電話で問い合わせ' : 'Call Organizer', external: false };
+    return null;
+  }
+
   function extractPriceNote(raw) {
     let s = String(raw || '').trim();
     if (!s) return '';
@@ -3602,6 +3666,14 @@
       // 出し物（演目）。events シート末尾に追加した program 列。
       const program = ev.program || ev.出し物 || '';
 
+      // 主催（organizer 列）。空欄は自主公演とみなす。
+      const organizerRaw = (ev.organizer || ev.主催 || '').trim();
+      const isOwn = isOwnOrganizer(organizerRaw);
+      const organizerName = organizerRaw || (isJapanese ? '三晶プロダクション' : 'Mitsuakira Production');
+      // 外部主催のときだけ使う問い合わせ先（contact 列）
+      const contactRaw = (ev.contact || '').trim();
+      const contactLink = isOwn ? null : primaryContactLink(contactRaw, isJapanese);
+
       // Use venue_name if available, fallback to venue
       const venueName = ev.venue_name || ev.venue || '';
       // シートの列名は venue_address。ev.address しか見ておらず住所が出ていなかった。
@@ -3626,6 +3698,10 @@
                 <span class="event-detail-value">${isJapanese ? '開場' : 'Open'} ${ev.openTime || ev.time_open} / ${isJapanese ? '開演' : 'Start'} ${ev.startTime || ev.time_start}</span>
               </div>
             ` : ''}
+            <div class="event-detail-row">
+              <span class="event-detail-label">${isJapanese ? '主催' : 'Organizer'}</span>
+              <span class="event-detail-value">${escapeHtml(organizerName)}</span>
+            </div>
             <div class="event-detail-row event-detail-row--venue">
               <span class="event-detail-label">${isJapanese ? '会場' : 'Venue'}</span>
               <span class="event-detail-value">
@@ -3676,12 +3752,40 @@
             ${ev.special ? `
               <div class="event-special">${ev.special.replace(/\n/g, '<br>')}</div>
             ` : ''}
+            ${!isOwn ? `
+              <div class="event-contact">
+                <p class="event-contact-lead">
+                  <span class="ja-only">こちらは <strong>${escapeHtml(organizerName)}</strong> 主催の公演です。当サイトではお申し込みを承っておりません。ご予約・お問い合わせは主催者へ直接お願いいたします。</span>
+                  <span class="en-only">This performance is organized by <strong>${escapeHtml(organizerName)}</strong>. Reservations are not handled on this site &mdash; please contact the organizer directly.</span>
+                </p>
+                ${contactRaw ? `
+                  <div class="event-contact-detail">${linkifyContact(contactRaw)}</div>
+                ` : `
+                  <div class="event-contact-detail">
+                    <span class="ja-only">連絡先は主催者の告知をご確認ください。ご不明な点は<a href="#contact">当方のお問い合わせ窓口</a>までどうぞ。</span>
+                    <span class="en-only">Please refer to the organizer's announcement for contact details, or <a href="#contact">reach out to us</a>.</span>
+                  </div>
+                `}
+              </div>
+            ` : ''}
           </div>
           <div class="event-card-footer">
-            <button class="btn btn-primary btn-apply" onclick='openApplyModal(${JSON.stringify(ev).replace(/'/g, "&#39;")})' ${remainingSeats <= 0 && capacity > 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-              <span class="ja-only">${remainingSeats <= 0 && capacity > 0 ? '満席' : '申し込む'}</span>
-              <span class="en-only">${remainingSeats <= 0 && capacity > 0 ? 'Full' : 'Apply'}</span>
-            </button>
+            ${isOwn ? `
+              <button class="btn btn-primary btn-apply" onclick='openApplyModal(${JSON.stringify(ev).replace(/'/g, "&#39;")})' ${remainingSeats <= 0 && capacity > 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                <span class="ja-only">${remainingSeats <= 0 && capacity > 0 ? '満席' : '申し込む'}</span>
+                <span class="en-only">${remainingSeats <= 0 && capacity > 0 ? 'Full' : 'Apply'}</span>
+              </button>
+            ` : (contactLink ? `
+              <a class="btn btn-primary" href="${contactLink.href}"${contactLink.external ? ' target="_blank" rel="noopener"' : ''}>
+                <span class="ja-only">${contactLink.label}</span>
+                <span class="en-only">${primaryContactLink(contactRaw, false).label}</span>
+              </a>
+            ` : `
+              <a class="btn btn-outline" href="#contact">
+                <span class="ja-only">お問い合わせ</span>
+                <span class="en-only">Contact</span>
+              </a>
+            `)}
             <a href="https://lin.ee/zMR1NuAF" target="_blank" rel="noopener" class="btn btn-line-add" style="background:#06C755;color:#fff;border:1px solid #06C755;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
               <span class="ja-only">LINE友だち追加</span>
               <span class="en-only">Add LINE</span>
@@ -3701,6 +3805,8 @@
     if (window.__autoOpenFromLine) {
       window.__autoOpenFromLine = false; // 一度だけ実行
       const firstOpen = events.find(ev => {
+        // 外部主催の回は当サイトで申し込めないので自動オープンの対象外
+        if (!isOwnOrganizer(ev.organizer)) return false;
         const cap = parseInt(ev.capacity) || 0;
         const sold = parseInt(ev.reserved_count || ev.reservedCount || 0);
         return cap === 0 || (cap - sold) > 0;
@@ -3715,6 +3821,15 @@
   let currentEvent = null;
 
   function openApplyModal(event) {
+    // 外部主催のイベントは当サイトで受け付けない。万一呼ばれても開かず、
+    // イベント一覧に出している主催者連絡先へ誘導する。
+    if (!isOwnOrganizer(event && event.organizer)) {
+      const ja = document.body.classList.contains('lang-ja');
+      alert(ja
+        ? 'こちらは他団体主催の公演です。お申し込み・お問い合わせは主催者へ直接お願いいたします。'
+        : 'This event is organized by another party. Please contact the organizer directly.');
+      return;
+    }
     currentEvent = event;
     const isJapanese = document.body.classList.contains('lang-ja');
 
