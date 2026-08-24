@@ -1239,6 +1239,15 @@
     gap: 32px;
   }
 
+  /* hidden 属性はブラウザ標準の [hidden]{display:none} で効くが、
+     .events-grid の display:grid が後勝ちで打ち消してしまい、
+     「これまでの公演」タブでも今後の公演が出たままになっていた。
+     タブの表示切り替えは hidden 属性でやっているので、明示的に消す。 */
+  .events-grid[hidden],
+  .past-events[hidden] {
+    display: none;
+  }
+
   .event-card {
     background: white;
     border: 1px solid rgba(26, 40, 64, 0.1);
