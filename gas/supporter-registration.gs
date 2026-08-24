@@ -596,6 +596,14 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // 過去公演一覧取得（サイトの「これまでの公演」タブ用）
+  if (action === 'getPastEvents') {
+    const events = getPastEvents();
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, events: events }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // 管理者用：全イベント取得
   if (action === 'getEvents') {
     const email = e.parameter.email;
@@ -1343,6 +1351,43 @@ function getPublicEvents() {
   return events;
 }
 
+// 開催日が過ぎたイベントを新しい順に返す。draft は下書きなので出さない。
+// 申し込みには使わないので、料金や残席などの申し込み系の列は返さない。
+function getPastEvents() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const events = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 1; i < data.length; i++) {
+    const status = data[i][18];
+    if (!status || status === 'draft') continue;
+    const eventDate = new Date(data[i][3]);
+    if (isNaN(eventDate) || eventDate >= today) continue;
+
+    events.push({
+      event_id: data[i][0],
+      title: data[i][1],
+      performer: data[i][2],            // description 列 = 出演者
+      date: formatDate(data[i][3]),
+      time_start: formatTime(data[i][5]),
+      venue_name: data[i][7],
+      venue_address: data[i][8],
+      status: status,
+      image_url: data[i][19],
+      program: data[i][22] || '',
+      organizer: data[i][23] || ''
+    });
+  }
+
+  events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return events;
+}
+
 function getAllEvents() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_EVENTS);
@@ -1576,6 +1621,75 @@ function saveEvent(data) {
     ]);
     return { success: true, eventId: eventId };
   }
+}
+
+// 白河移転（2026年2月10日）以降の出演履歴を events シートに投入する。
+// GAS エディタから一度だけ手動実行する想定。
+// 同じ event_id が既にある行は「触らない」— 既存の入力を上書きしないため。
+function seedPastEvents() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_EVENTS);
+  if (!sheet) {
+    console.log('events シートがありません。先に saveEvent か setupTestData を実行してください');
+    return;
+  }
+  ensureEventColumns_(sheet);
+
+  const PERFORMER = '三遊亭円左衛門';
+  // [event_id, date, time_start, title, venue_name, venue_address, program(内容), organizer]
+  const RECORDS = [
+    ['EV-20260308-01', '2026-03-08', '19:00', '下新田寄席', '下新田コミュニティセンター', '', '「巌流島」「らくだ」', ''],
+    ['EV-20260321-01', '2026-03-21', '10:00', '南湖フェスティバル', '南湖', '', '司会', ''],
+    ['EV-20260328-01', '2026-03-28', '16:00', 'ふれあい寄席', 'フレッシュタウン', '埼玉県北葛飾郡杉戸町', '「巌流島」「らくだ」', ''],
+    ['EV-20260331-01', '2026-03-31', '', '須賀川ウルトラFM 出演', '須賀川ウルトラFM', '', 'フリートーク', ''],
+    ['EV-20260419-01', '2026-04-19', '', '龍興寺 落語会', '龍興寺', '', '「火焔太鼓」', ''],
+    ['EV-20260428-01', '2026-04-28', '', '福島FM 出演', '福島FM', '', 'フリートーク', ''],
+    ['EV-20260515-01', '2026-05-15', '', '賢聖会', '食堂あさどら', '', '「時そば」', ''],
+    ['EV-20260610-01', '2026-06-10', '', '第1回落語【風と曼荼羅】', 'おでん 髪と台詞', '', '「たらちね」「蒟蒻問答」', '三晶プロダクション']
+  ];
+
+  const existing = {};
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) existing[data[i][0]] = true;
+
+  const now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
+  let added = 0;
+  const skipped = [];
+
+  RECORDS.forEach(r => {
+    if (existing[r[0]]) { skipped.push(r[0]); return; }
+    sheet.appendRow([
+      r[0],        // 0: event_id
+      r[3],        // 1: title
+      PERFORMER,   // 2: description（出演者）
+      r[1],        // 3: date
+      '',          // 4: time_open
+      r[2],        // 5: time_start
+      '',          // 6: time_end
+      r[4],        // 7: venue_name
+      r[5],        // 8: venue_address
+      '',          // 9: venue_access
+      0,           // 10: capacity
+      0,           // 11: reserved_count
+      0,           // 12: waitlist_count
+      '',          // 13: price_general
+      '',          // 14: price_member
+      '',          // 15: price_includes
+      '',          // 16: accept_start
+      '',          // 17: accept_end
+      'closed',    // 18: status（終了済み）
+      '',          // 19: image_url
+      now,         // 20: created_at
+      now,         // 21: updated_at
+      r[6],        // 22: program（内容）
+      r[7],        // 23: organizer
+      ''           // 24: contact
+    ]);
+    added++;
+  });
+
+  console.log('過去公演を ' + added + ' 件追加しました');
+  if (skipped.length) console.log('既に存在するためスキップ: ' + skipped.join(', '));
 }
 
 function deleteEvent(data) {
