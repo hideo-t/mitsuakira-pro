@@ -409,6 +409,15 @@
         </div>
       </div>
 
+      <!-- 主催が三晶以外の場合、公開サイト側は申し込みボタンを出さず
+           下の「問い合わせ先」を表示する。空欄は自主公演扱い。 -->
+      <div class="form-row full">
+        <div class="form-group">
+          <label for="eventOrganizer">主催</label>
+          <input type="text" id="eventOrganizer" placeholder="三晶プロダクション（空欄なら自主公演として申し込みを受け付けます）">
+        </div>
+      </div>
+
       <div class="form-row full">
         <div class="form-group">
           <label for="eventVenue">会場名 *</label>
@@ -470,8 +479,8 @@
 
       <div class="form-row full">
         <div class="form-group">
-          <label for="eventContact">お申し込み・お問い合わせ</label>
-          <textarea id="eventContact" placeholder="電話: 0248-XX-XXXX&#10;メール: info@example.com"></textarea>
+          <label for="eventContact">問い合わせ先（主催が三晶以外のときサイトに表示）</label>
+          <textarea id="eventContact" placeholder="電話: 0248-XX-XXXX&#10;メール: info@example.com&#10;※URL・メール・電話番号は自動でリンクになります"></textarea>
         </div>
       </div>
 
@@ -641,6 +650,7 @@
       document.getElementById('eventDate').value = eventData.date || '';
       document.getElementById('eventOpenTime').value = eventData.time_open || '';
       document.getElementById('eventStartTime').value = eventData.time_start || '';
+      document.getElementById('eventOrganizer').value = eventData.organizer || '';
       document.getElementById('eventVenue').value = eventData.venue_name || '';
       document.getElementById('eventAddress').value = eventData.venue_address || '';
       document.getElementById('eventVenueUrl').value = eventData.venue_access || '';
@@ -650,7 +660,7 @@
       document.getElementById('eventPerformer').value = eventData.description || '';
       document.getElementById('eventPriceIncludes').value = eventData.price_includes || '';
       document.getElementById('eventProgram').value = eventData.program || '';
-      document.getElementById('eventContact').value = '';
+      document.getElementById('eventContact').value = eventData.contact || '';
       document.getElementById('eventSpecial').value = '';
       document.getElementById('eventStatus').value = eventData.status || 'draft';
       document.getElementById('eventImageUrl').value = eventData.image_url || '';
@@ -687,6 +697,7 @@
     document.getElementById('eventDate').value = '';
     document.getElementById('eventOpenTime').value = '';
     document.getElementById('eventStartTime').value = '';
+    document.getElementById('eventOrganizer').value = '';
     document.getElementById('eventVenue').value = '';
     document.getElementById('eventAddress').value = '';
     document.getElementById('eventVenueUrl').value = '';
@@ -724,6 +735,8 @@
       timeOpen: document.getElementById('eventOpenTime').value,
       timeStart: document.getElementById('eventStartTime').value,
       timeEnd: '',
+      organizer: document.getElementById('eventOrganizer').value,
+      contact: document.getElementById('eventContact').value,
       venueName: document.getElementById('eventVenue').value,
       venueAddress: document.getElementById('eventAddress').value,
       venueAccess: document.getElementById('eventVenueUrl').value,
@@ -804,6 +817,8 @@
           <span class="event-id">${ev.event_id}</span>
           <h4>${ev.title}</h4>
           <p>${ev.date} ${ev.time_start} / ${ev.venue_name}</p>
+          ${ev.organizer && !/三晶|円左衛門|mitsuakira/i.test(ev.organizer)
+            ? `<p style="color:#8B0A1A;">主催: ${ev.organizer}（申し込み受付なし・問い合わせ表示）</p>` : ''}
         </div>
         <div class="event-actions">
           <button class="btn btn-outline" onclick='showEventForm(${JSON.stringify(ev)})'>編集</button>
