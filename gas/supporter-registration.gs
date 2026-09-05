@@ -1848,9 +1848,26 @@ function verifyAdmin(email, password) {
     return false;
   }
 
+  // シートの値は必ず文字列に直してから比べる。
+  // スプレッドシートは数字だけのパスワードを「数値」として返すため、
+  // 素の === だと 12345678（数値）と "12345678"（文字列）が一致せず、
+  // 正しいパスワードを入力しても永久にログインできない。
+  // 前後の空白も落とす。セルに紛れ込んだ空白は目で見て気づけない。
+  const norm = v => String(v === null || v === undefined ? '' : v).trim();
+
+  const inputEmail = norm(email).toLowerCase();
+  const inputPass = norm(password);
+  if (!inputEmail || !inputPass) return false;
+
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === email && data[i][1] === password) {
+    const rowEmail = norm(data[i][0]).toLowerCase();
+    const rowPass = norm(data[i][1]);
+
+    // 空欄の行が空入力と一致してしまわないように弾く
+    if (!rowEmail || !rowPass) continue;
+
+    if (rowEmail === inputEmail && rowPass === inputPass) {
       return true;
     }
   }
