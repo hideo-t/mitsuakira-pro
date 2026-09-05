@@ -27,20 +27,31 @@
 
 ## 手順
 
-### 1. GAS に新しいファイルを追加する
+### 1〜3. GAS に反映する
 
-1. [Google Apps Script](https://script.google.com) を開き、このサイトのプロジェクトを開きます
-2. 左の **ファイル** の横にある **＋** → **スクリプト** を選びます
-3. 名前を `settings_addition` にします（`.gs` は自動で付きます）
-4. `gas/settings_addition.gs` の中身を**まるごと**貼り付けます
+```bash
+npm run gas:deploy
+```
 
-### 2. 既存ファイルを差し替える
+これだけです。構文チェック → コード送信 → デプロイの差し替えまで自動で行い、
+**公開URLは変わりません。**
 
-`gas/supporter-registration.gs` に4箇所の追記を入れてあります。
-GAS 側の `supporter-registration` を開き、**中身を全部消してから**、
-このリポジトリの `gas/supporter-registration.gs` を丸ごと貼り付けてください。
+初回のみ、clasp のログインとスクリプトIDの設定が必要です。
+手順は [GAS_DEPLOY.md](GAS_DEPLOY.md) の「最初の1回だけ」を参照してください。
 
-追記した箇所は次の4つです（自分で入れる場合の参考）。
+<details>
+<summary>手作業でやる場合（clasp を使わないとき）</summary>
+
+1. [Google Apps Script](https://script.google.com) でプロジェクトを開く
+2. **ファイル** の **＋** → **スクリプト** → 名前を `settings_addition` にして、
+   `gas/settings_addition.gs` の中身をまるごと貼り付ける
+3. `supporter-registration` の中身を全部消し、
+   このリポジトリの `gas/supporter-registration.gs` を丸ごと貼り付ける
+4. **デプロイ → デプロイを管理 → 鉛筆（編集） → バージョン「新バージョン」→ デプロイ**
+
+**4を飛ばすと、コードを保存しても公開URLは古いままです。** これが一番多い失敗です。
+
+`supporter-registration.gs` への追記は次の4箇所です（自分で入れる場合の参考）。
 
 | 場所 | 内容 |
 |---|---|
@@ -49,18 +60,7 @@ GAS 側の `supporter-registration` を開き、**中身を全部消してから
 | `submitReservation` の `return` の直前 | `notifyReservation_()` の呼び出し |
 | `completeRegistration` の `return` の直前 | `notifyMemberRegistered_()` の呼び出し |
 
-### 3. デプロイし直す（ここを飛ばすと反映されません）
-
-**GAS はコードを保存しただけでは公開URLに反映されません。** 必ず次をやってください。
-
-1. 右上の **デプロイ** → **デプロイを管理**
-2. 現在のデプロイの右にある **鉛筆（編集）** をクリック
-3. **バージョン** を「**新バージョン**」に変更
-4. **デプロイ** をクリック
-
-> URL は変わりません。`admin.html` と `index.html` の `GAS_URL` を書き換える必要はありません。
-> もし URL が変わってしまった場合は、**新しいデプロイを作ってしまっています**。
-> 「デプロイを管理」から既存のものを編集し直してください。
+</details>
 
 ### 4. 設定を入れる
 

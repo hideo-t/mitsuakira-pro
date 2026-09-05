@@ -1,0 +1,21 @@
+# 依存パッケージ
+node_modules/
+
+# clasp の認証情報。絶対にコミットしないこと。
+# これが漏れると、GASプロジェクトを他人が書き換えられる。
+.clasprc.json
+**/.clasprc.json
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+
+# 作業中のファイル
+*.zip
+*.log

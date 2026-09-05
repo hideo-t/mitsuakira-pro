@@ -1,0 +1,23 @@
+{
+  "name": "mitsuakira-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "三晶プロダクション 公式サイト。静的HTMLとGoogle Apps Scriptで動く。",
+  "scripts": {
+    "gas:login": "clasp login",
+    "gas:pull": "clasp pull",
+    "gas:push": "clasp push -f",
+    "gas:deploy": "node scripts/gas-deploy.mjs",
+    "gas:deployments": "clasp deployments",
+    "gas:open": "clasp open-script",
+    "serve": "python -m http.server 8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hideo-t/mitsuakira-pro.git"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@google/clasp": "^3.4.1"
+  }
+}
