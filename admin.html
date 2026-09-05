@@ -335,6 +335,86 @@
       padding: 20px;
     }
   }
+
+  /* ===== 基本情報設定 ===== */
+  .settings-group {
+    margin-bottom: 32px;
+  }
+  .settings-group > h4 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    letter-spacing: .04em;
+    color: #1A2840;
+    border-bottom: 2px solid #1A2840;
+    padding-bottom: 6px;
+  }
+  .settings-group > p.group-note {
+    margin: 8px 0 16px;
+    font-size: 13px;
+    color: #6b6257;
+    line-height: 1.7;
+  }
+  .settings-item {
+    margin-bottom: 18px;
+  }
+  .settings-item label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .settings-item input[type="text"],
+  .settings-item input[type="tel"],
+  .settings-item input[type="url"],
+  .settings-item textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #c9bfae;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .settings-item textarea {
+    min-height: 90px;
+    resize: vertical;
+  }
+  .settings-item .note {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #6b6257;
+    line-height: 1.6;
+  }
+  .settings-item.is-bool {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .settings-item.is-bool input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex: 0 0 auto;
+  }
+  .settings-item.is-bool > div {
+    flex: 1;
+  }
+  .settings-actions {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #e0d8c8;
+    padding: 14px 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .settings-actions .hint {
+    font-size: 12px;
+    color: #6b6257;
+  }
 </style>
 </head>
 <body>
@@ -371,6 +451,7 @@
     <button class="active" onclick="showPanel('events')">イベント管理</button>
     <button onclick="showPanel('applications')">イベント申込</button>
     <button onclick="showPanel('supporters')">サポーター一覧</button>
+    <button onclick="showPanel('settings')">基本情報設定</button>
   </nav>
 
   <!-- Events Panel -->
@@ -547,6 +628,18 @@
       <div class="no-events">サポーター情報を読み込み中...</div>
     </div>
   </div>
+
+  <!-- Settings Panel -->
+  <div class="admin-panel" id="panelSettings">
+    <div class="panel-header">
+      <h3>基本情報設定</h3>
+    </div>
+    <div class="success-message" id="settingsSuccess"></div>
+    <div class="error-message" id="settingsError"></div>
+    <div id="settingsForm">
+      <div class="no-events">設定を読み込み中...</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -637,7 +730,189 @@
     } else if (panelName === 'applications') {
       loadEventFilter();
       loadApplications();
+    } else if (panelName === 'settings') {
+      loadSettings();
     }
+  }
+
+  // ===== 基本情報設定 =====
+  // 項目の定義は GAS 側（settings_addition.gs の SETTINGS_DEFINITION）が持っている。
+  // ここは受け取った定義どおりに入力欄を描くだけなので、項目を増やしても
+  // この画面は触らなくてよい。
+  let settingsCache = [];
+
+  async function loadSettings() {
+    const container = document.getElementById('settingsForm');
+    document.getElementById('settingsSuccess').style.display = 'none';
+    document.getElementById('settingsError').style.display = 'none';
+    container.innerHTML = '<div class="no-events">設定を読み込み中...</div>';
+
+    try {
+      const session = JSON.parse(localStorage.getItem('adminSession'));
+      const url = `${GAS_URL}?action=getSettings&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (!result.success) {
+        container.innerHTML = '';
+        showSettingsError(result.message === 'Unauthorized'
+          ? 'ログインし直してください。'
+          : (result.message || '設定を読み込めませんでした。'));
+        return;
+      }
+
+      settingsCache = result.settings || [];
+      renderSettings(settingsCache);
+    } catch (error) {
+      container.innerHTML = '';
+      showSettingsError('設定を読み込めませんでした：' + error.message);
+    }
+  }
+
+  function renderSettings(items) {
+    const container = document.getElementById('settingsForm');
+
+    if (!items.length) {
+      container.innerHTML = '<div class="no-events">設定項目がありません。</div>';
+      return;
+    }
+
+    const groups = [];
+    items.forEach(item => {
+      let g = groups.find(x => x.name === item.group);
+      if (!g) { g = { name: item.group, items: [] }; groups.push(g); }
+      g.items.push(item);
+    });
+
+    const groupNotes = {
+      '通知先': '申し込みや登録が入ったときに、ここに書いたアドレスへメールが届きます。空欄にすると、その通知は送られません。',
+      '基本情報': 'サイトやメールに表示される、事務所の連絡先です。',
+      '運用': '日々の運用にあわせて変えるものです。'
+    };
+
+    container.innerHTML = groups.map(group => `
+      <div class="settings-group">
+        <h4>${escapeHtml(group.name)}</h4>
+        ${groupNotes[group.name] ? `<p class="group-note">${escapeHtml(groupNotes[group.name])}</p>` : ''}
+        ${group.items.map(item => renderSettingsItem(item)).join('')}
+      </div>
+    `).join('') + `
+      <div class="settings-actions">
+        <button class="btn btn-primary" onclick="saveSettingsForm()" id="settingsSaveBtn">設定を保存</button>
+        <span class="hint">保存すると、次の申し込みからこの内容で動きます。</span>
+      </div>
+    `;
+  }
+
+  function renderSettingsItem(item) {
+    const id = 'set_' + item.key;
+    const note = item.note ? `<span class="note">${escapeHtml(item.note)}</span>` : '';
+
+    if (item.type === 'bool') {
+      const checked = String(item.value) === 'true' ? 'checked' : '';
+      return `
+        <div class="settings-item is-bool">
+          <input type="checkbox" id="${id}" data-key="${item.key}" data-type="bool" ${checked}>
+          <div>
+            <label for="${id}">${escapeHtml(item.label)}</label>
+            ${note}
+          </div>
+        </div>`;
+    }
+
+    if (item.type === 'email_list' || item.type === 'textarea') {
+      return `
+        <div class="settings-item">
+          <label for="${id}">${escapeHtml(item.label)}</label>
+          <textarea id="${id}" data-key="${item.key}" data-type="${item.type}"
+            placeholder="${item.type === 'email_list' ? '例：manager@example.com, staff@example.com' : ''}"
+          >${escapeHtml(item.value || '')}</textarea>
+          ${note}
+        </div>`;
+    }
+
+    const inputType = item.type === 'tel' ? 'tel' : (item.type === 'url' ? 'url' : 'text');
+    return `
+      <div class="settings-item">
+        <label for="${id}">${escapeHtml(item.label)}</label>
+        <input type="${inputType}" id="${id}" data-key="${item.key}" data-type="${item.type}"
+          value="${escapeHtml(item.value || '')}">
+        ${note}
+      </div>`;
+  }
+
+  async function saveSettingsForm() {
+    const btn = document.getElementById('settingsSaveBtn');
+    document.getElementById('settingsSuccess').style.display = 'none';
+    document.getElementById('settingsError').style.display = 'none';
+
+    const settings = {};
+    document.querySelectorAll('#settingsForm [data-key]').forEach(el => {
+      settings[el.dataset.key] = el.dataset.type === 'bool'
+        ? (el.checked ? 'true' : 'false')
+        : el.value.trim();
+    });
+
+    // 保存前に、この場でメールアドレスの形をひととおり見ておく。
+    // GAS側でも同じ検証をしているが、no-cors では結果を読めないため手前で止める。
+    const badFields = [];
+    settingsCache.filter(i => i.type === 'email_list').forEach(item => {
+      const raw = settings[item.key] || '';
+      if (!raw) return;
+      const bad = raw.split(/[,;\n\r]+/).map(s => s.trim()).filter(s => s && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s));
+      if (bad.length) badFields.push(`${item.label}：${bad.join(', ')}`);
+    });
+
+    if (badFields.length) {
+      showSettingsError('メールアドレスの形式が正しくありません。\n' + badFields.join('\n'));
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+
+    try {
+      const session = JSON.parse(localStorage.getItem('adminSession'));
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveSettings',
+          adminEmail: session.email,
+          adminPassword: session.password,
+          settings: settings
+        })
+      });
+
+      // no-cors のためレスポンスを読めない。保存できたかどうかは読み直して確かめる。
+      await new Promise(r => setTimeout(r, 1200));
+      await loadSettings();
+
+      const el = document.getElementById('settingsSuccess');
+      el.textContent = '設定を保存しました。上の内容は保存後に読み直したものです。';
+      el.style.display = 'block';
+    } catch (error) {
+      showSettingsError('保存できませんでした：' + error.message);
+    } finally {
+      const b = document.getElementById('settingsSaveBtn');
+      if (b) { b.disabled = false; b.textContent = '設定を保存'; }
+    }
+  }
+
+  function showSettingsError(message) {
+    const el = document.getElementById('settingsError');
+    el.textContent = message;
+    el.style.display = 'block';
+  }
+
+  function escapeHtml(str) {
+    return String(str === null || str === undefined ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // Event form

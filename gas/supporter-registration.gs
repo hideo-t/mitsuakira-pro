@@ -374,6 +374,11 @@ function doPost(e) {
         result = deleteEvent(data);
         break;
 
+      // 基本情報・通知先の保存（管理者用）※ settings_addition.gs
+      case 'saveSettings':
+        result = saveSettings(data);
+        break;
+
       default:
         throw new Error('Invalid action: ' + data.action);
     }
@@ -650,6 +655,20 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // 管理者用：基本情報・通知先の取得 ※ settings_addition.gs
+  if (action === 'getSettings') {
+    const email = e.parameter.email;
+    const password = e.parameter.password;
+    if (!verifyAdmin(email, password)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, message: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, settings: getSettingsForAdmin() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // 会員ID検証
   if (action === 'verifyMemberId') {
     const memberId = e.parameter.memberId;
@@ -792,6 +811,19 @@ function submitReservation(data) {
     console.error('Email send error:', e);
     logEmail(data.email, data.name, '【三晶プロダクション】お申し込み確認', 'reservation_confirm', reservationId, 'error: ' + e.toString());
   }
+
+  // 管理者への通知。宛先は settings シートで設定する。
+  // 通知が失敗しても申し込み自体は成立させるため、notifyReservation_ 内で例外を握りつぶしている。
+  notifyReservation_({
+    reservationId: reservationId,
+    name: data.name,
+    email: data.email,
+    eventTitle: eventInfo.title,
+    eventDate: eventInfo.date,
+    partySize: parseInt(data.partySize) || 1,
+    price: (parseInt(priceApplied) || 0) * (parseInt(data.partySize) || 1),
+    isMember: isMember
+  });
 
   return {
     success: true,
@@ -1242,6 +1274,13 @@ function completeRegistration(data) {
       } catch (e) {
         console.error('completeRegistration sendMemberWelcomeEmail error:', e);
       }
+
+      // 管理者への通知。宛先は settings シートで設定する。
+      notifyMemberRegistered_({
+        memberId: memberId,
+        name: data.name || '会員',
+        email: data.email
+      });
 
       return { success: true, memberId: memberId, message: 'Registration complete' };
     }
