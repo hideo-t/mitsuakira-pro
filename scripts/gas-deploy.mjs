@@ -24,7 +24,15 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
+// clasp は .bin のラッパー（Windows では .cmd）ではなく、実体の JS を
+// node で直接起動する。Node 20 以降は execFile で .cmd を直接起動できないため、
+// ラッパー経由にすると Windows で必ず失敗する。
+const CLASP_JS = join(ROOT, 'node_modules', '@google', 'clasp', 'build', 'src', 'index.js');
+
+function clasp(args) {
+  execFileSync(process.execPath, [CLASP_JS, ...args], { cwd: ROOT, stdio: 'inherit' });
+}
 
 function die(message, hint) {
   console.error('\n  ' + message);
@@ -94,8 +102,12 @@ step(3, 'clasp の設定を確認');
 const claspPath = join(ROOT, '.clasp.json');
 if (!existsSync(claspPath)) die('.clasp.json がありません。', 'docs/GAS_DEPLOY.md の「最初の1回だけ」を実行してください。');
 
-const clasp = JSON.parse(readFileSync(claspPath, 'utf8'));
-if (!clasp.scriptId || clasp.scriptId.startsWith('PUT_YOUR')) {
+if (!existsSync(CLASP_JS)) {
+  die('clasp が見つかりません。', 'npm install を実行してください。');
+}
+
+const claspCfg = JSON.parse(readFileSync(claspPath, 'utf8'));
+if (!claspCfg.scriptId || claspCfg.scriptId.startsWith('PUT_YOUR')) {
   die('.clasp.json の scriptId が未設定です。',
     'GASエディタのURL https://script.google.com/home/projects/<ここ>/edit から取って書き込んでください。');
 }
@@ -103,13 +115,13 @@ if (!existsSync(join(gasDir, 'appsscript.json'))) {
   die('gas/appsscript.json がありません。',
     '先に npm run gas:pull を1回だけ実行してください。GAS側の設定を取り込みます（これをせずに push すると公開設定を上書きする恐れがあります）。');
 }
-console.log(`    scriptId     ${clasp.scriptId.slice(0, 12)}…`);
-console.log(`    rootDir      ${clasp.rootDir || '.'}`);
+console.log(`    scriptId     ${claspCfg.scriptId.slice(0, 12)}…`);
+console.log(`    rootDir      ${claspCfg.rootDir || '.'}`);
 
 // ---------- 4. push ----------
 step(4, 'コードを GAS へ送信（clasp push）');
 try {
-  execFileSync(NPX, ['clasp', 'push', '-f'], { cwd: ROOT, stdio: 'inherit' });
+  clasp(['push', '-f']);
 } catch {
   die('push に失敗しました。', 'ログインが切れている場合は npm run gas:login を実行してください。');
 }
@@ -126,7 +138,7 @@ const stamp = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
 const description = sha ? `${stamp} (${sha})` : stamp;
 
 try {
-  execFileSync(NPX, ['clasp', 'deploy', '-i', deploymentId, '-d', description], { cwd: ROOT, stdio: 'inherit' });
+  clasp(['deploy', '-i', deploymentId, '-d', description]);
 } catch {
   die('デプロイに失敗しました。',
     'deploymentId が正しいか確認してください（npx clasp deployments で一覧が出ます）。コードの push は済んでいます。');
