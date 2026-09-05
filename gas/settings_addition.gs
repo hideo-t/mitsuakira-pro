@@ -75,7 +75,7 @@ const SETTINGS_DEFINITION = [
     label: 'お問い合わせ先メールアドレス',
     type: 'text',
     default: '',
-    note: 'お客様に案内する窓口。通知先とは別に持てます。'
+    note: 'お客様へ送るメールの末尾に載ります。空にすると、その行は出ません。上の通知先とは別のものです。'
   },
   {
     group: '基本情報',
@@ -83,7 +83,7 @@ const SETTINGS_DEFINITION = [
     label: 'お問い合わせ先電話番号',
     type: 'tel',
     default: '',
-    note: '例：0248-00-0000'
+    note: 'お客様へ送るメールの末尾に載ります。空にすると、その行は出ません。'
   },
   {
     group: '基本情報',
@@ -91,7 +91,7 @@ const SETTINGS_DEFINITION = [
     label: 'サイトのURL',
     type: 'url',
     default: 'https://hideo-t.github.io/mitsuakira-pro',
-    note: '確認メールに載せるリンクの土台になります。'
+    note: 'お客様へのメールと通知メールの末尾に載ります。空にするとコード側の既定値を使います。'
   },
   {
     group: '基本情報',
@@ -99,7 +99,7 @@ const SETTINGS_DEFINITION = [
     label: 'LINE公式アカウントのURL',
     type: 'url',
     default: '',
-    note: '空にするとメール内のLINE案内が出なくなります。'
+    note: 'お客様へ送るメールの末尾に載ります。空にすると、その行は出ません。'
   },
 
   // ---- 運用 ----
@@ -109,7 +109,7 @@ const SETTINGS_DEFINITION = [
     label: '申し込み確認メールに添える一文',
     type: 'textarea',
     default: '',
-    note: '毎回のメール末尾に入ります。当面の注意事項などにお使いください。空でも構いません。'
+    note: '公演の申し込み確認メールに、確定リンクの後ろで差し込まれます。当面の注意事項などにどうぞ。空なら何も出ません。'
   }
 ];
 
@@ -269,6 +269,38 @@ function saveSettings(data) {
   });
 
   return { success: true, message: saved + '件の設定を保存しました' };
+}
+
+// ===== 顧客向けメールへの差し込み =====
+
+/**
+ * 顧客に届くメールの署名。事務所名・サイト・連絡先を設定から組み立てる。
+ * 未設定の項目は行ごと出さないので、空欄のまま運用しても不格好にならない。
+ */
+function mailSignature_() {
+  const s = getSettingsMap_();
+  const rule = '─────────────────────────';
+  const lines = [rule, s.org_name || '三晶プロダクション'];
+
+  // site_url が未設定のときは、コード側の SITE_URL 定数に落とす
+  const url = s.site_url || (typeof SITE_URL !== 'undefined' ? SITE_URL : '');
+  if (url) lines.push(url);
+
+  if (s.contact_phone) lines.push('お電話　' + s.contact_phone);
+  if (s.contact_email) lines.push('メール　' + s.contact_email);
+  if (s.line_url) lines.push('LINE　' + s.line_url);
+
+  lines.push(rule);
+  return lines.join('\n');
+}
+
+/**
+ * 申し込み確認メールに添える一文。未設定なら何も出さない（区切り線も出ない）。
+ */
+function reservationNoteBlock_() {
+  const note = getSetting_('reservation_note', '');
+  if (!note) return '';
+  return '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' + note + '\n\n';
 }
 
 // ===== 通知メール =====
