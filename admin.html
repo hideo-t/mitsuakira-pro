@@ -690,6 +690,12 @@
         </div>
       </div>
       <div class="bc-field">
+        <label class="bc-label">宛先の範囲</label>
+        <label style="font-size:14px; cursor:pointer;">
+          <input type="checkbox" id="bcIncludeRes"> 予約者にも送る（会員登録していない申込者のメールも含める）
+        </label>
+      </div>
+      <div class="bc-field">
         <label class="bc-label">件名（メール用）</label>
         <input type="text" id="bcSubject" placeholder="【三晶プロダクション】〇〇公演のお知らせ">
       </div>
@@ -1520,6 +1526,7 @@
           channel: channel,
           subject: subject,
           body: body,
+          includeReservations: document.getElementById('bcIncludeRes').checked,
           testOnly: !!testOnly
         })
       });

@@ -598,6 +598,11 @@ function doGet(e) {
     return confirmMember(token);
   }
 
+  // サポーター登録 Step2：メール認証リンク（検証→email_verified→詳細フォームへ転送）
+  if (action === 'verifyEmail' && token) {
+    return verifyEmail(token, e.parameter.email);
+  }
+
   // 公開イベント一覧取得
   if (action === 'getPublicEvents') {
     const events = getPublicEvents();
@@ -1044,6 +1049,57 @@ function confirmMember(token) {
   return createErrorPage('無効な確認リンクです。');
 }
 
+// ===== サポーター登録 Step2: メールリンク → サーバーで検証してから詳細フォームへ =====
+// メール内のリンクはこの関数を叩く。トークンを検証し、有効なら email_verified を立て、
+// サイトの詳細入力フォーム(Step3)へ転送する。無効・期限切れはその場でエラーページを出す。
+// （旧実装はサイトに ?verified=true を渡すだけで、クリックしてもサーバー側では何も
+//  検証されていなかった。ここで一度サーバーを通すことで期限切れ等をその場で弾ける。）
+function verifyEmail(token, email) {
+  if (!token) return createErrorPage('確認リンクが不正です。');
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const memSheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (!memSheet) return createErrorPage('会員データが見つかりません。');
+
+  const data = memSheet.getDataRange().getValues();
+  const now = new Date();
+  const want = String(token).trim();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][16] || '').trim() !== want) continue; // verification_token
+
+    const status = data[i][11];
+    const rowEmail = data[i][3];
+    const tokenExpiry = new Date(data[i][17]);
+
+    if (status === 'active') {
+      return createSuccessPage('メール認証は既に完了しています。', data[i][0]);
+    }
+    if (now > tokenExpiry) {
+      return createErrorPage('確認リンクの有効期限が切れています。お手数ですが、もう一度メールアドレスの登録からやり直してください。');
+    }
+
+    // メール認証済みフラグを立てる（本登録＝Step3送信までは status は pending のまま）
+    memSheet.getRange(i + 1, 5).setValue(true); // email_verified
+
+    // サイトの詳細入力フォーム(Step3)へ転送
+    const target = `${SITE_URL}?verified=true&token=${encodeURIComponent(token)}&email=${encodeURIComponent(rowEmail)}#supporter`;
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<meta http-equiv="refresh" content="0;url=' + target + '">' +
+      '<title>メール認証完了</title></head>' +
+      '<body style="font-family:sans-serif;text-align:center;padding:40px;color:#3a3226;">' +
+      '<p>メール認証が完了しました。登録ページへ移動します…</p>' +
+      '<p><a href="' + target + '">自動で移動しない場合はこちら</a></p>' +
+      '<script>location.replace(' + JSON.stringify(target) + ');</script>' +
+      '</body></html>'
+    );
+  }
+
+  return createErrorPage('無効な確認リンクです。お手数ですが、もう一度登録をやり直してください。');
+}
+
 // ===== 仮会員登録（イベント申込時） =====
 function registerPendingMember(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -1203,7 +1259,9 @@ function sendVerificationEmail(data) {
 
 // ===== Step2確認メール送信 =====
 function sendStep2VerificationEmail(info) {
-  const verifyUrl = `${SITE_URL}?verified=true&token=${info.token}&email=${encodeURIComponent(info.email)}#supporter`;
+  // サーバー(verifyEmail)を経由させる。ここでトークン検証→email_verified→Step3フォームへ転送。
+  const gasUrl = ScriptApp.getService().getUrl();
+  const verifyUrl = `${gasUrl}?action=verifyEmail&token=${encodeURIComponent(info.token)}&email=${encodeURIComponent(info.email)}`;
 
   const subject = '【三晶プロダクション】メール認証のお願い';
 
@@ -1488,11 +1546,14 @@ function getMembers() {
       email: data[i][3],
       email_verified: data[i][4],
       phone: data[i][5],
+      line_id: data[i][6],
+      line_name: data[i][7],
       region: data[i][8],
       plan: data[i][10],
       status: data[i][11],
       event_count: data[i][12],
-      registered_at: data[i][14]
+      registered_at: data[i][14],
+      verified_at: data[i][15]
     });
   }
 
@@ -1771,63 +1832,10 @@ function verifyMemberId(memberId, email) {
 }
 
 // ===== 予約・会員一覧取得 =====
-function getReservations(eventId) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_RESERVATIONS);
-  if (!sheet) return [];
-
-  const data = sheet.getDataRange().getValues();
-  const reservations = [];
-
-  for (let i = 1; i < data.length; i++) {
-    if (!eventId || data[i][1] === eventId) {
-      reservations.push({
-        reservation_id: data[i][0],
-        event_id: data[i][1],
-        member_id: data[i][2],
-        name: data[i][3],
-        email: data[i][5],
-        email_verified: data[i][6],
-        phone: data[i][7],
-        party_size: data[i][8],
-        channel: data[i][9],
-        status: data[i][10],
-        is_member: data[i][11],
-        price_applied: data[i][12],
-        reserved_at: data[i][16],
-        confirmed_at: data[i][17]
-      });
-    }
-  }
-
-  return reservations;
-}
-
-function getMembers() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_MEMBERS);
-  if (!sheet) return [];
-
-  const data = sheet.getDataRange().getValues();
-  const members = [];
-
-  for (let i = 1; i < data.length; i++) {
-    members.push({
-      member_id: data[i][0],
-      name: data[i][1],
-      email: data[i][3],
-      email_verified: data[i][4],
-      phone: data[i][5],
-      plan: data[i][10],
-      status: data[i][11],
-      event_count: data[i][12],
-      registered_at: data[i][14],
-      verified_at: data[i][15]
-    });
-  }
-
-  return members;
-}
+// getReservations / getMembers はこの下に「重複定義」があったが削除した。
+// JS は後勝ちのため、旧・簡易版が上の詳細版（notes / event_title / name_kana /
+// line_id を含む）を上書きしてしまい、管理画面に備考等が出ない原因になっていた。
+// 詳細版（getMembers は :1475 付近、getReservations は :1503 付近）を唯一の定義とする。
 
 // ===== 管理者認証 =====
 function adminLogin(email, password) {

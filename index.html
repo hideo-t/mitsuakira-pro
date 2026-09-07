@@ -3473,23 +3473,28 @@
     submitBtn.innerHTML = isJapanese ? '送信中...' : 'Sending...';
 
     try {
-      // Send to GAS
-      await fetch(GAS_URL, {
+      // Send to GAS（no-cors をやめ、結果を確認する。ヘッダ無し=text/plain でプリフライト回避）
+      const response = await fetch(GAS_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'sendVerification',
           email: email,
           language: isJapanese ? 'ja' : 'en'
         })
       });
+      const result = await response.json();
 
-      // Show email sent message
-      document.getElementById('emailForm').style.display = 'none';
-      document.getElementById('emailSentMessage').style.display = 'block';
-      document.getElementById('sentEmailDisplay').textContent = email;
-      document.getElementById('sentEmailDisplayEn').textContent = email;
+      if (result.success) {
+        // Show email sent message
+        document.getElementById('emailForm').style.display = 'none';
+        document.getElementById('emailSentMessage').style.display = 'block';
+        document.getElementById('sentEmailDisplay').textContent = email;
+        document.getElementById('sentEmailDisplayEn').textContent = email;
+      } else {
+        // 既に登録済み等、サーバー側の理由をそのまま表示
+        showMessage('emailFormMessage', 'error',
+          result.message || (isJapanese ? 'エラーが発生しました。再度お試しください。' : 'An error occurred. Please try again.'));
+      }
 
     } catch (error) {
       console.error('Error:', error);
@@ -3567,11 +3572,9 @@
     submitBtn.innerHTML = isJapanese ? '登録中...' : 'Registering...';
 
     try {
-      // Send to GAS
-      await fetch(GAS_URL, {
+      // Send to GAS（no-cors をやめ、登録が実際に成功したか確認する）
+      const response = await fetch(GAS_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'completeRegistration',
           email: email,
@@ -3584,10 +3587,19 @@
           language: isJapanese ? 'ja' : 'en'
         })
       });
+      const result = await response.json();
 
-      // Show completion message
-      document.getElementById('detailForm').style.display = 'none';
-      document.getElementById('completedMessage').style.display = 'block';
+      if (result.success) {
+        // Show completion message
+        document.getElementById('detailForm').style.display = 'none';
+        document.getElementById('completedMessage').style.display = 'block';
+      } else {
+        // トークン期限切れ・不一致などをそのまま表示（従来は失敗しても「完了」と誤表示していた）
+        const msg = result.message === 'Token expired'
+          ? (isJapanese ? '認証リンクの有効期限が切れています。お手数ですが最初からやり直してください。' : 'Verification link expired. Please start over.')
+          : (result.message || (isJapanese ? '登録に失敗しました。再度お試しください。' : 'Registration failed. Please try again.'));
+        showMessage('detailFormMessage', 'error', msg);
+      }
 
     } catch (error) {
       console.error('Error:', error);
@@ -4328,10 +4340,8 @@
     submitBtn.innerHTML = isJapanese ? '送信中...' : 'Submitting...';
 
     try {
-      await fetch(GAS_URL, {
+      const response = await fetch(GAS_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'submitReservation',
           eventId: currentEvent.event_id || currentEvent.id,
@@ -4347,11 +4357,18 @@
           language: isJapanese ? 'ja' : 'en'
         })
       });
+      const result = await response.json();
 
-      // Show Step 3 (email sent)
-      document.getElementById('applyStep1').style.display = 'none';
-      document.getElementById('applyStep2').style.display = 'none';
-      document.getElementById('applyStep3').style.display = 'block';
+      if (result.success) {
+        // Show Step 3 (email sent)
+        document.getElementById('applyStep1').style.display = 'none';
+        document.getElementById('applyStep2').style.display = 'none';
+        document.getElementById('applyStep3').style.display = 'block';
+      } else {
+        // 満席・重複などサーバー側の理由をそのまま表示（従来は失敗しても成功画面を出していた）
+        showMessage('confirmFormMessage', 'error',
+          result.message || (isJapanese ? '申込に失敗しました。再度お試しください。' : 'Application failed. Please try again.'));
+      }
 
     } catch (error) {
       console.error('Error:', error);

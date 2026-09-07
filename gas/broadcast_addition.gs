@@ -20,6 +20,10 @@ var BC_COL_EMAIL   = 3;  // email
 var BC_COL_LINE_ID = 6;  // line_id
 var BC_COL_STATUS  = 11; // status
 
+// 予約(reservations)シートの列インデックス（0始まり）
+var BC_RES_COL_EMAIL  = 5;   // email
+var BC_RES_COL_STATUS = 10;  // status
+
 /**
  * 一斉配信の本体。
  * @param {Object} data { action, email, password, channel, subject, body, testOnly }
@@ -60,8 +64,8 @@ function broadcastAnnouncement(data) {
     }
   }
 
-  // --- 宛先収集 ---
-  var recipients = bcCollectRecipients_();
+  // --- 宛先収集（includeReservations=true なら予約者のメールも含める） ---
+  var recipients = bcCollectRecipients_(data.includeReservations);
   var result = { success: true, emailCount: 0, lineCount: 0, errors: [] };
 
   // --- メール（BCCで一括、50件ずつ） ---
@@ -104,34 +108,56 @@ function broadcastAnnouncement(data) {
 }
 
 /**
- * 会員シートから宛先を集める。
+ * 宛先を集める。会員(active)のメール＋LINE。
+ * includeReservations=true のときは予約者(キャンセル以外)のメールも加える（LINEは会員のみ）。
+ * @param {boolean} includeReservations
  * @return {Object} { emails: string[], lineIds: string[] }
  */
-function bcCollectRecipients_() {
+function bcCollectRecipients_(includeReservations) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(SHEET_MEMBERS);
   var emails = [];
   var lineIds = [];
-  if (!sheet) return { emails: emails, lineIds: lineIds };
-
-  var data = sheet.getDataRange().getValues();
   var seenEmail = {};
   var seenLine = {};
-  for (var i = 1; i < data.length; i++) {
-    var status = String(data[i][BC_COL_STATUS] || '').trim();
-    if (status !== 'active') continue; // 有効会員のみ＝「全員」
 
-    var email = String(data[i][BC_COL_EMAIL] || '').trim();
-    if (email && email.indexOf('@') > 0 && !seenEmail[email]) {
-      seenEmail[email] = true;
-      emails.push(email);
-    }
-    var lineId = String(data[i][BC_COL_LINE_ID] || '').trim();
-    if (lineId && !seenLine[lineId]) {
-      seenLine[lineId] = true;
-      lineIds.push(lineId);
+  // --- 会員シート（active のみ） ---
+  var sheet = ss.getSheetByName(SHEET_MEMBERS);
+  if (sheet) {
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      var status = String(data[i][BC_COL_STATUS] || '').trim();
+      if (status !== 'active') continue; // 有効会員のみ＝「全員」
+
+      var email = String(data[i][BC_COL_EMAIL] || '').trim();
+      if (email && email.indexOf('@') > 0 && !seenEmail[email]) {
+        seenEmail[email] = true;
+        emails.push(email);
+      }
+      var lineId = String(data[i][BC_COL_LINE_ID] || '').trim();
+      if (lineId && !seenLine[lineId]) {
+        seenLine[lineId] = true;
+        lineIds.push(lineId);
+      }
     }
   }
+
+  // --- 予約シート（キャンセル以外の申込者メール） ---
+  if (includeReservations) {
+    var resSheet = ss.getSheetByName(SHEET_RESERVATIONS);
+    if (resSheet) {
+      var rdata = resSheet.getDataRange().getValues();
+      for (var j = 1; j < rdata.length; j++) {
+        var rstatus = String(rdata[j][BC_RES_COL_STATUS] || '').trim();
+        if (rstatus === 'cancelled' || rstatus === 'canceled') continue;
+        var remail = String(rdata[j][BC_RES_COL_EMAIL] || '').trim();
+        if (remail && remail.indexOf('@') > 0 && !seenEmail[remail]) {
+          seenEmail[remail] = true;
+          emails.push(remail);
+        }
+      }
+    }
+  }
+
   return { emails: emails, lineIds: lineIds };
 }
 
