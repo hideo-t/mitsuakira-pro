@@ -4376,5 +4376,35 @@
   });
 </script>
 
+<!-- 隠しコマンド：ロゴを3秒以内に5回すばやくタップ/クリックすると管理画面へ -->
+<script>
+(function () {
+  var logo = document.querySelector('.logo');
+  if (!logo) return;
+  var taps = 0;
+  var timer = null;
+  var WINDOW_MS = 3000;   // この時間内に
+  var NEED = 5;           // 5回で発火
+
+  function reset() {
+    taps = 0;
+    if (timer) { clearTimeout(timer); timer = null; }
+  }
+
+  logo.addEventListener('click', function (e) {
+    taps++;
+    if (taps === 1) {
+      timer = setTimeout(reset, WINDOW_MS);
+    }
+    if (taps >= NEED) {
+      // 通常のロゴ挙動（#topへのスクロール）を止めて管理画面へ
+      e.preventDefault();
+      reset();
+      window.location.href = 'admin.html';
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
