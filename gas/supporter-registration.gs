@@ -379,6 +379,11 @@ function doPost(e) {
         result = saveSettings(data);
         break;
 
+      // イベント告知 一斉配信（管理者用）※ broadcast_addition.gs
+      case 'broadcast':
+        result = broadcastAnnouncement(data);
+        break;
+
       default:
         throw new Error('Invalid action: ' + data.action);
     }

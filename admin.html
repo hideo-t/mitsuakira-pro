@@ -608,14 +608,103 @@
 
   <!-- Applications Panel -->
   <div class="admin-panel" id="panelApplications">
+    <style>
+      .apps-subnav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; border-bottom:1px solid #e0d8c8; padding-bottom:12px; }
+      .apps-subnav button { padding:8px 16px; font-size:14px; background:#f5f0e6; border:1px solid #d8cdb5; border-radius:6px; cursor:pointer; color:#3a3226; }
+      .apps-subnav button.active { background:#8B2F26; color:#fff; border-color:#8B2F26; }
+      .apps-tab { display:none; }
+      .apps-tab.active { display:block; }
+      .summary-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+      .summary-card { border:1px solid #e0d8c8; border-radius:10px; padding:16px; background:#fff; }
+      .summary-card h4 { margin:0 0 4px; font-size:16px; color:#1A2840; }
+      .summary-card .sc-date { font-size:12px; color:#888; margin-bottom:12px; }
+      .sc-stats { display:flex; gap:0; text-align:center; margin-bottom:12px; }
+      .sc-stats > div { flex:1; }
+      .sc-stats .num { font-size:24px; font-weight:bold; line-height:1; }
+      .sc-stats .lbl { font-size:11px; color:#888; margin-top:4px; }
+      .sc-stats .waku .num { color:#1A2840; }
+      .sc-stats .app .num { color:#8B2F26; }
+      .sc-stats .rem .num { color:#2A5C3D; }
+      .sc-stats .rem.full .num { color:#b00; }
+      .sc-bar { height:8px; border-radius:4px; background:#eee; overflow:hidden; }
+      .sc-bar > div { height:100%; background:#8B2F26; }
+      .sc-drill { margin-top:10px; font-size:13px; color:#8B2F26; cursor:pointer; text-decoration:underline; background:none; border:none; padding:0; }
+      .bc-field { margin-bottom:16px; }
+      .bc-field label.bc-label { display:block; font-size:13px; font-weight:bold; color:#3a3226; margin-bottom:6px; }
+      .bc-field input[type=text], .bc-field select, .bc-field textarea { width:100%; padding:10px; font-size:14px; border:1px solid #d8cdb5; border-radius:6px; box-sizing:border-box; font-family:inherit; }
+      .bc-channels { display:flex; flex-wrap:wrap; gap:16px; }
+      .bc-channels label { font-size:14px; cursor:pointer; }
+      .bc-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+      .bc-btn { padding:12px 24px; font-size:15px; border:none; border-radius:6px; cursor:pointer; }
+      .bc-btn.test { background:#f5f0e6; border:1px solid #d8cdb5; color:#3a3226; }
+      .bc-btn.send { background:#8B2F26; color:#fff; }
+      .bc-btn:disabled { opacity:.5; cursor:not-allowed; }
+      .bc-note { font-size:12px; color:#888; margin-top:12px; line-height:1.6; }
+    </style>
     <div class="panel-header">
-      <h3>イベント申込一覧</h3>
-      <select id="filterEventId" onchange="loadApplications()" style="padding: 8px 16px; font-size: 14px;">
-        <option value="">すべてのイベント</option>
-      </select>
+      <h3>イベント申込</h3>
     </div>
-    <div class="event-list" id="applicationList">
-      <div class="no-events">申込情報を読み込み中...</div>
+    <div class="apps-subnav">
+      <button class="active" onclick="showAppsTab('byEvent', this)">📋 イベント別申込</button>
+      <button onclick="showAppsTab('summary', this)">📊 集計（枠・申込・残数）</button>
+      <button onclick="showAppsTab('past', this)">🗂 過去の実績</button>
+      <button onclick="showAppsTab('broadcast', this)">📣 一斉配信</button>
+    </div>
+
+    <!-- 1) イベント別申込 -->
+    <div class="apps-tab active" id="appsTabByEvent">
+      <select id="filterEventId" onchange="loadApplications()" style="padding:8px 16px; font-size:14px; margin-bottom:16px;">
+        <option value="">イベントを選択してください…</option>
+      </select>
+      <div class="event-list" id="applicationList">
+        <div class="no-events">上のメニューからイベントを選んでください</div>
+      </div>
+    </div>
+
+    <!-- 2) 集計 -->
+    <div class="apps-tab" id="appsTabSummary">
+      <div id="summaryGrid" class="summary-grid"><div class="no-events">読み込み中...</div></div>
+    </div>
+
+    <!-- 3) 過去の実績 -->
+    <div class="apps-tab" id="appsTabPast">
+      <div id="pastGrid" class="summary-grid"><div class="no-events">読み込み中...</div></div>
+    </div>
+
+    <!-- 4) 一斉配信 -->
+    <div class="apps-tab" id="appsTabBroadcast">
+      <div class="success-message" id="bcSuccess" style="display:none;"></div>
+      <div class="error-message" id="bcError" style="display:none;"></div>
+      <div class="bc-field">
+        <label class="bc-label">告知するイベント（選ぶと件名・本文を自動作成）</label>
+        <select id="bcEventId" onchange="fillBroadcastBody()">
+          <option value="">— イベントを選択 —</option>
+        </select>
+      </div>
+      <div class="bc-field">
+        <label class="bc-label">配信チャンネル</label>
+        <div class="bc-channels">
+          <label><input type="radio" name="bcChannel" value="both" checked> メール ＋ LINE 両方</label>
+          <label><input type="radio" name="bcChannel" value="email"> メールのみ</label>
+          <label><input type="radio" name="bcChannel" value="line"> LINEのみ</label>
+        </div>
+      </div>
+      <div class="bc-field">
+        <label class="bc-label">件名（メール用）</label>
+        <input type="text" id="bcSubject" placeholder="【三晶プロダクション】〇〇公演のお知らせ">
+      </div>
+      <div class="bc-field">
+        <label class="bc-label">本文</label>
+        <textarea id="bcBody" rows="12" placeholder="配信する本文を入力してください"></textarea>
+      </div>
+      <div class="bc-actions">
+        <button type="button" class="bc-btn test" id="bcTestBtn" onclick="sendBroadcast(true)">✉ 自分宛にテスト送信</button>
+        <button type="button" class="bc-btn send" id="bcSendBtn" onclick="sendBroadcast(false)">📣 全員に一斉配信</button>
+      </div>
+      <p class="bc-note">
+        宛先＝<strong>全員</strong>：メールは有効な全会員（BCC）／LINEは友だち登録済みの全会員（multicast）に届きます。<br>
+        一斉配信は<strong>取り消せません</strong>。まず「テスト送信」で自分宛に確認してから送ってください。
+      </p>
     </div>
   </div>
 
@@ -728,8 +817,7 @@
     if (panelName === 'supporters') {
       loadSupporters();
     } else if (panelName === 'applications') {
-      loadEventFilter();
-      loadApplications();
+      initApplicationsPanel();
     } else if (panelName === 'settings') {
       loadSettings();
     }
@@ -1146,82 +1234,311 @@
     }
   }
 
-  // Load event filter options
-  async function loadEventFilter() {
-    const select = document.getElementById('filterEventId');
-    const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+  // ===== イベント申込ダッシュボード =====
+  // 全イベント・全予約をここに一度だけ取り込み、各サブタブで使い回す。
+  let appsEventsCache = [];
+  let appsReservationsCache = [];
+  let appsLoaded = false;
 
+  function adminSession_() {
+    return JSON.parse(localStorage.getItem('adminSession') || '{}');
+  }
+
+  // 「30名」「30」いずれも数値化。数字がなければ 0。
+  function parseCapacity_(v) {
+    if (v === null || v === undefined) return 0;
+    const m = String(v).match(/\d+/);
+    return m ? parseInt(m[0], 10) : 0;
+  }
+
+  // 開催日が今日より前かどうか（過去実績の判定）
+  function isPastDate_(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(String(dateStr).replace(/-/g, '/'));
+    if (isNaN(d.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d < today;
+  }
+
+  // サブタブ切替
+  function showAppsTab(name, btn) {
+    document.querySelectorAll('#panelApplications .apps-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.apps-subnav button').forEach(b => b.classList.remove('active'));
+    const map = { byEvent: 'appsTabByEvent', summary: 'appsTabSummary', past: 'appsTabPast', broadcast: 'appsTabBroadcast' };
+    document.getElementById(map[name]).classList.add('active');
+    if (btn) btn.classList.add('active');
+  }
+
+  // パネル表示時：データを取り込み、各ビューを描く
+  async function initApplicationsPanel() {
+    if (!appsLoaded) {
+      await refreshApplicationsData();
+    }
+    renderEventOptions();
+    renderSummary();
+    renderPast();
+    renderBroadcastEventOptions();
+  }
+
+  // 全イベント＋全予約をまとめて取得
+  async function refreshApplicationsData() {
+    const session = adminSession_();
+    if (!session.email || !session.password) return;
+    const q = `email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
     try {
-      const response = await fetch(`${GAS_URL}?action=getEvents&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.events && data.events.length > 0) {
-          select.innerHTML = '<option value="">すべてのイベント</option>' +
-            data.events.map(ev => `<option value="${ev.event_id}">${ev.title} (${ev.date})</option>`).join('');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load events for filter');
+      const [evRes, resRes] = await Promise.all([
+        fetch(`${GAS_URL}?action=getEvents&${q}`),
+        fetch(`${GAS_URL}?action=getReservations&${q}`)
+      ]);
+      const evData = await evRes.json();
+      const resData = await resRes.json();
+      appsEventsCache = (evData && evData.events) ? evData.events : [];
+      appsReservationsCache = (resData && resData.reservations) ? resData.reservations : [];
+      appsLoaded = true;
+    } catch (e) {
+      console.error('refreshApplicationsData error', e);
     }
   }
 
-  // Load applications (reservations)
-  async function loadApplications() {
+  // イベント別申込：予約件数を event_id ごとに集計（party_size 合計）
+  function appsCountsByEvent_() {
+    const counts = {};
+    appsReservationsCache.forEach(r => {
+      // キャンセルは数えない
+      if (r.status === 'cancelled' || r.status === 'canceled') return;
+      const id = r.event_id || '';
+      const size = parseInt(r.party_size, 10) || 1;
+      counts[id] = (counts[id] || 0) + size;
+    });
+    return counts;
+  }
+
+  // ---- 1) イベント別申込 ----
+  function renderEventOptions() {
+    const select = document.getElementById('filterEventId');
+    const current = select.value;
+    select.innerHTML = '<option value="">イベントを選択してください…</option>' +
+      appsEventsCache.map(ev =>
+        `<option value="${ev.event_id}">${ev.title || ev.event_id} (${ev.date || ''})</option>`
+      ).join('');
+    if (current) select.value = current;
+  }
+
+  function loadApplications() {
     const listEl = document.getElementById('applicationList');
     const eventId = document.getElementById('filterEventId').value;
-    listEl.innerHTML = '<div class="no-events">読み込み中...</div>';
+    if (!eventId) {
+      listEl.innerHTML = '<div class="no-events">上のメニューからイベントを選んでください</div>';
+      return;
+    }
+    const ev = appsEventsCache.find(e => e.event_id === eventId);
+    const list = appsReservationsCache.filter(r => r.event_id === eventId);
+    const cap = ev ? parseCapacity_(ev.capacity) : 0;
+    const applied = list
+      .filter(r => r.status !== 'cancelled' && r.status !== 'canceled')
+      .reduce((s, r) => s + (parseInt(r.party_size, 10) || 1), 0);
+    const remain = cap ? Math.max(cap - applied, 0) : null;
+
+    const header = `
+      <div class="summary-card" style="margin-bottom:16px;">
+        <h4>${ev ? (ev.title || ev.event_id) : eventId}</h4>
+        <div class="sc-date">${ev ? (ev.date || '') : ''} ${ev && ev.venue_name ? '／ ' + ev.venue_name : ''}</div>
+        <div class="sc-stats">
+          <div class="waku"><div class="num">${cap || '—'}</div><div class="lbl">枠</div></div>
+          <div class="app"><div class="num">${applied}</div><div class="lbl">申込</div></div>
+          <div class="rem ${remain === 0 ? 'full' : ''}"><div class="num">${remain === null ? '—' : remain}</div><div class="lbl">残数</div></div>
+        </div>
+      </div>`;
+
+    if (list.length === 0) {
+      listEl.innerHTML = header + '<div class="no-events">このイベントの申込はまだありません</div>';
+      return;
+    }
+
+    listEl.innerHTML = header + list.map(res => `
+      <div class="event-item">
+        <div class="event-info">
+          <span class="event-id">${res.reservation_id || ''}</span>
+          <h4>${res.name || res.member_id || '(名前なし)'}</h4>
+          <p>
+            ${res.channel || 'web'} / ${res.party_size || 1}名 / ${res.email || ''}<br>
+            ${res.phone ? `TEL: ${res.phone}` : ''}
+            ${res.notes ? `<br>備考: ${res.notes}` : ''}
+          </p>
+        </div>
+        <div class="event-actions">
+          <span style="font-size:12px; color:${res.status === 'confirmed' ? '#2A5C3D' : '#666'};">
+            ${res.status === 'confirmed' ? '確定' : res.status === 'pending' ? '仮予約' : res.status || ''}
+          </span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ---- 2) 集計（枠・申込・残数）：今後開催のイベント ----
+  function renderSummary() {
+    const grid = document.getElementById('summaryGrid');
+    const counts = appsCountsByEvent_();
+    const upcoming = appsEventsCache.filter(ev => !isPastDate_(ev.date));
+    if (upcoming.length === 0) {
+      grid.innerHTML = '<div class="no-events">開催予定のイベントがありません</div>';
+      return;
+    }
+    grid.innerHTML = upcoming.map(ev => summaryCard_(ev, counts, false)).join('');
+  }
+
+  // ---- 3) 過去の実績 ----
+  function renderPast() {
+    const grid = document.getElementById('pastGrid');
+    const counts = appsCountsByEvent_();
+    const past = appsEventsCache.filter(ev => isPastDate_(ev.date));
+    if (past.length === 0) {
+      grid.innerHTML = '<div class="no-events">過去の実績はまだありません</div>';
+      return;
+    }
+    grid.innerHTML = past.map(ev => summaryCard_(ev, counts, true)).join('');
+  }
+
+  // 集計カード（枠・申込・残数＋充足バー）。past=true は実績表示（残数の代わりに充足率）
+  function summaryCard_(ev, counts, past) {
+    const cap = parseCapacity_(ev.capacity);
+    const applied = counts[ev.event_id] || 0;
+    const remain = cap ? Math.max(cap - applied, 0) : null;
+    const rate = cap ? Math.min(Math.round((applied / cap) * 100), 100) : 0;
+    const thirdCol = past
+      ? `<div class="rem"><div class="num">${cap ? rate + '%' : '—'}</div><div class="lbl">充足率</div></div>`
+      : `<div class="rem ${remain === 0 ? 'full' : ''}"><div class="num">${remain === null ? '—' : remain}</div><div class="lbl">残数</div></div>`;
+    return `
+      <div class="summary-card">
+        <h4>${ev.title || ev.event_id}</h4>
+        <div class="sc-date">${ev.date || ''}${ev.venue_name ? ' ／ ' + ev.venue_name : ''}</div>
+        <div class="sc-stats">
+          <div class="waku"><div class="num">${cap || '—'}</div><div class="lbl">枠</div></div>
+          <div class="app"><div class="num">${applied}</div><div class="lbl">申込</div></div>
+          ${thirdCol}
+        </div>
+        <div class="sc-bar"><div style="width:${rate}%"></div></div>
+        <button class="sc-drill" onclick="drillToEvent('${ev.event_id}')">申込一覧を見る →</button>
+      </div>`;
+  }
+
+  // カードから「イベント別申込」タブへドリルダウン
+  function drillToEvent(eventId) {
+    const subnavBtns = document.querySelectorAll('.apps-subnav button');
+    showAppsTab('byEvent', subnavBtns[0]);
+    document.getElementById('filterEventId').value = eventId;
+    loadApplications();
+  }
+
+  // ---- 4) 一斉配信 ----
+  function renderBroadcastEventOptions() {
+    const select = document.getElementById('bcEventId');
+    if (!select) return;
+    select.innerHTML = '<option value="">— イベントを選択 —</option>' +
+      appsEventsCache
+        .filter(ev => !isPastDate_(ev.date))
+        .map(ev => `<option value="${ev.event_id}">${ev.title || ev.event_id} (${ev.date || ''})</option>`)
+        .join('');
+  }
+
+  // 選んだイベントから件名・本文を自動生成（そのまま送っても、手直ししてもOK）
+  function fillBroadcastBody() {
+    const id = document.getElementById('bcEventId').value;
+    if (!id) return;
+    const ev = appsEventsCache.find(e => e.event_id === id);
+    if (!ev) return;
+    document.getElementById('bcSubject').value = `【三晶プロダクション】${ev.title || ''} のお知らせ`;
+    const lines = [];
+    lines.push(`${ev.title || ''} を開催いたします。`);
+    lines.push('');
+    if (ev.date) lines.push(`◆ 日時：${ev.date}${ev.time_start ? ' ' + ev.time_start + '開演' : ''}${ev.time_open ? '（' + ev.time_open + '開場）' : ''}`);
+    if (ev.venue_name) lines.push(`◆ 会場：${ev.venue_name}${ev.venue_address ? '（' + ev.venue_address + '）' : ''}`);
+    if (ev.venue_access) lines.push(`◆ アクセス：${ev.venue_access}`);
+    if (ev.price_general || ev.price_member) {
+      const p = [];
+      if (ev.price_general) p.push(`一般 ${ev.price_general}`);
+      if (ev.price_member) p.push(`会員 ${ev.price_member}`);
+      lines.push(`◆ 料金：${p.join(' / ')}`);
+    }
+    if (ev.program) lines.push(`◆ 演目：${ev.program}`);
+    lines.push('');
+    lines.push('皆さまのお越しを心よりお待ち申し上げております。');
+    lines.push('三遊亭円左衛門 一門');
+    document.getElementById('bcBody').value = lines.join('\n');
+  }
+
+  // 一斉配信の送信（testOnly=true は自分宛テスト）
+  async function sendBroadcast(testOnly) {
+    const session = adminSession_();
+    const okEl = document.getElementById('bcSuccess');
+    const errEl = document.getElementById('bcError');
+    okEl.style.display = 'none';
+    errEl.style.display = 'none';
+
+    if (!session.email || !session.password) {
+      errEl.textContent = 'ログインし直してください。';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const channel = (document.querySelector('input[name="bcChannel"]:checked') || {}).value || 'both';
+    const subject = document.getElementById('bcSubject').value.trim();
+    const body = document.getElementById('bcBody').value.trim();
+
+    if (!body) {
+      errEl.textContent = '本文を入力してください。';
+      errEl.style.display = 'block';
+      return;
+    }
+    if ((channel === 'email' || channel === 'both') && !subject) {
+      errEl.textContent = 'メールの件名を入力してください。';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (!testOnly) {
+      const label = channel === 'email' ? 'メール' : channel === 'line' ? 'LINE' : 'メールとLINE';
+      if (!confirm(`本当に全員へ${label}で一斉配信しますか？\nこの操作は取り消せません。`)) return;
+    }
+
+    const testBtn = document.getElementById('bcTestBtn');
+    const sendBtn = document.getElementById('bcSendBtn');
+    testBtn.disabled = true;
+    sendBtn.disabled = true;
+    const activeBtn = testOnly ? testBtn : sendBtn;
+    const origText = activeBtn.textContent;
+    activeBtn.textContent = '送信中…';
 
     try {
-      const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
-      console.log('Session data:', session);
-      if (!session.email || !session.password) {
-        listEl.innerHTML = '<div class="no-events">ログインしてください</div>';
-        return;
-      }
-      let url = `${GAS_URL}?action=getReservations&email=${encodeURIComponent(session.email)}&password=${encodeURIComponent(session.password)}`;
-      if (eventId) {
-        url += `&eventId=${encodeURIComponent(eventId)}`;
-      }
-
-      console.log('Fetching reservations from:', url);
-      const response = await fetch(url, {
-        method: 'GET',
-        redirect: 'follow'
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'broadcast',
+          email: session.email,
+          password: session.password,
+          channel: channel,
+          subject: subject,
+          body: body,
+          testOnly: !!testOnly
+        })
       });
-      console.log('Response status:', response.status, response.ok);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Reservations data:', data);
-        if (data.reservations && data.reservations.length > 0) {
-          listEl.innerHTML = data.reservations.map(res => `
-            <div class="event-item">
-              <div class="event-info">
-                <span class="event-id">${res.reservation_id || ''}</span>
-                <h4>${res.name || res.member_id || '(名前なし)'}</h4>
-                <p>
-                  <strong>${res.event_title || res.event_id || ''}</strong> ${res.event_date ? `(${res.event_date})` : ''}<br>
-                  ${res.channel || 'web'} / ${res.party_size || 1}名 / ${res.email || ''}<br>
-                  ${res.phone ? `TEL: ${res.phone}` : ''}
-                  ${res.notes ? `<br>備考: ${res.notes}` : ''}
-                </p>
-              </div>
-              <div class="event-actions">
-                <span style="font-size: 12px; color: ${res.status === 'confirmed' ? '#2A5C3D' : '#666'};">
-                  ${res.status === 'confirmed' ? '確定' : res.status === 'pending' ? '仮予約' : res.status || ''}
-                </span>
-              </div>
-            </div>
-          `).join('');
-        } else {
-          listEl.innerHTML = '<div class="no-events">申込がありません</div>';
-        }
+      const result = await response.json();
+      if (result.success) {
+        okEl.textContent = result.message || '送信しました。';
+        okEl.style.display = 'block';
       } else {
-        console.error('Response not ok:', response.status);
-        listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
+        errEl.textContent = result.message || '送信に失敗しました。';
+        errEl.style.display = 'block';
       }
-    } catch (error) {
-      console.error('Load applications error:', error);
-      listEl.innerHTML = '<div class="no-events">読み込みに失敗しました</div>';
+    } catch (e) {
+      console.error('broadcast error', e);
+      errEl.textContent = '送信に失敗しました：' + e.message;
+      errEl.style.display = 'block';
+    } finally {
+      testBtn.disabled = false;
+      sendBtn.disabled = false;
+      activeBtn.textContent = origText;
     }
   }
 </script>
