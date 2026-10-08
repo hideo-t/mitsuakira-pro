@@ -3921,7 +3921,9 @@
 
       // 料金は1行。金額と但し書きがあれば「一般 ¥5,000（軽食・ワンドリンク付き）」
       const priceLine = priceText && priceNote
-        ? `${priceText}（${priceNote}）`
+        ? (isJapanese && (ev.event_id || ev.id) === 'EV-20261018-01'
+          ? `${priceText} ${priceNote}`
+          : `${priceText}（${priceNote}）`)
         : (priceText || priceNote);
 
       // 出し物（演目）。events シート末尾に追加した program 列。
