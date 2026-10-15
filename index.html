@@ -3897,7 +3897,7 @@
       const reservedCount = parseInt(ev.reserved_count) || 0;
       const remainingSeats = capacity - reservedCount;
       const seatsText = capacity > 0
-        ? (isJapanese ? `残り ${remainingSeats} 席` : `${remainingSeats} seats left`)
+        ? (isJapanese ? `${capacity} 席` : `${capacity} seats`)
         : '';
 
       // Price display
@@ -3996,8 +3996,8 @@
             ` : ''}
             ${seatsText ? `
               <div class="event-detail-row">
-                <span class="event-detail-label">${isJapanese ? '席数' : 'Seats'}</span>
-                <span class="event-detail-value" style="color: ${remainingSeats <= 5 ? 'var(--color-hi)' : 'inherit'}; font-weight: ${remainingSeats <= 5 ? '700' : 'normal'};">${seatsText}</span>
+                <span class="event-detail-label">${isJapanese ? '総席数' : 'Total seats'}</span>
+                <span class="event-detail-value">${seatsText}</span>
               </div>
             ` : ''}
             ${ev.performer ? `
@@ -4131,16 +4131,12 @@
     }
     document.getElementById('applyEventPrice').textContent = priceDisplay;
 
-    // Remaining seats
+    // Total seats
     const capacity = parseInt(event.capacity) || 0;
-    const reservedCount = parseInt(event.reserved_count) || 0;
-    const remainingSeats = capacity - reservedCount;
     const seatsText = capacity > 0
-      ? (isJapanese ? `残席: ${remainingSeats} 席` : `Remaining: ${remainingSeats} seats`)
+      ? (isJapanese ? `総席数: ${capacity} 席` : `Total seats: ${capacity}`)
       : '';
-    document.getElementById('applyEventSeats').innerHTML = seatsText
-      ? `<span style="color: ${remainingSeats <= 5 ? 'var(--color-hi)' : 'inherit'}; font-weight: ${remainingSeats <= 5 ? '700' : 'normal'};">${seatsText}</span>`
-      : '';
+    document.getElementById('applyEventSeats').textContent = seatsText;
 
     // Reset form fields
     document.getElementById('applyName').value = '';
