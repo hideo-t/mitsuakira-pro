@@ -3931,8 +3931,10 @@
 
       // 主催（organizer 列）。空欄は自主公演とみなす。
       const organizerRaw = (ev.organizer || ev.主催 || '').trim();
-      const isOwn = isOwnOrganizer(organizerRaw);
-      const organizerName = organizerRaw || (isJapanese ? '三晶プロダクション' : 'Mitsuakira Production');
+      const inquiryOnly = ev.status === 'inquiry';
+      const isOwn = !inquiryOnly && isOwnOrganizer(organizerRaw);
+      const organizerName = organizerRaw || (inquiryOnly ? '' : (isJapanese ? '三晶プロダクション' : 'Mitsuakira Production'));
+      const eventTime = [ev.startTime || ev.time_start, inquiryOnly ? (ev.endTime || ev.time_end) : ''].filter(Boolean).join('～');
       // 外部主催のときだけ使う問い合わせ先（contact 列）
       const contactRaw = (ev.contact || '').trim();
       const contactLink = isOwn ? null : primaryContactLink(contactRaw, isJapanese);
@@ -3950,7 +3952,7 @@
           <div class="event-card-header">
             <div class="event-card-date">
               <span class="ecd-day">${dateStr}</span>
-              ${(ev.startTime || ev.time_start) ? `<span class="ecd-time"><small>${isJapanese ? '開演' : 'Start'}</small>${ev.startTime || ev.time_start}</span>` : ''}
+              ${eventTime ? `<span class="ecd-time"><small>${isJapanese ? (inquiryOnly ? '時間' : '開演') : (inquiryOnly ? 'Time' : 'Start')}</small>${escapeHtml(eventTime)}</span>` : ''}
             </div>
             <h3 class="event-card-title">${ev.title}</h3>
           </div>
@@ -3961,10 +3963,14 @@
                 <span class="event-detail-value">${isJapanese ? '開場' : 'Open'} ${ev.openTime || ev.time_open} / ${isJapanese ? '開演' : 'Start'} ${ev.startTime || ev.time_start}</span>
               </div>
             ` : ''}
-            <div class="event-detail-row">
+            ${organizerName ? `<div class="event-detail-row">
               <span class="event-detail-label">${isJapanese ? '主催' : 'Organizer'}</span>
               <span class="event-detail-value">${escapeHtml(organizerName)}</span>
-            </div>
+            </div>` : ''}
+            ${inquiryOnly && ev.description ? `<div class="event-detail-row">
+              <span class="event-detail-label">${isJapanese ? 'ご案内' : 'Details'}</span>
+              <span class="event-detail-value">${escapeHtml(ev.description).replace(/\n/g, '<br>')}</span>
+            </div>` : ''}
             <div class="event-detail-row event-detail-row--venue">
               <span class="event-detail-label">${isJapanese ? '会場' : 'Venue'}</span>
               <span class="event-detail-value">
@@ -4018,8 +4024,13 @@
             ${!isOwn ? `
               <div class="event-contact">
                 <p class="event-contact-lead">
+                  ${inquiryOnly ? `
+                  <span class="ja-only">当サイトではお申し込みを承っておりません。詳しくは下記へお問い合わせください。</span>
+                  <span class="en-only">Bookings are not handled on this site. Please use the contact details below for enquiries.</span>
+                  ` : `
                   <span class="ja-only">こちらは <strong>${escapeHtml(organizerName)}</strong> 主催の公演です。当サイトではお申し込みを承っておりません。ご予約・お問い合わせは主催者へ直接お願いいたします。</span>
                   <span class="en-only">This performance is organized by <strong>${escapeHtml(organizerName)}</strong>. Reservations are not handled on this site &mdash; please contact the organizer directly.</span>
+                  `}
                 </p>
                 ${contactRaw ? `
                   <div class="event-contact-detail">${linkifyContact(contactRaw)}</div>
@@ -4069,7 +4080,7 @@
       window.__autoOpenFromLine = false; // 一度だけ実行
       const firstOpen = events.find(ev => {
         // 外部主催の回は当サイトで申し込めないので自動オープンの対象外
-        if (!isOwnOrganizer(ev.organizer)) return false;
+        if (ev.status === 'inquiry' || !isOwnOrganizer(ev.organizer)) return false;
         const cap = parseInt(ev.capacity) || 0;
         const sold = parseInt(ev.reserved_count || ev.reservedCount || 0);
         return cap === 0 || (cap - sold) > 0;
@@ -4084,6 +4095,12 @@
   let currentEvent = null;
 
   function openApplyModal(event) {
+    if (event && event.status === 'inquiry') {
+      alert(document.body.classList.contains('lang-ja')
+        ? '当サイトではお申し込みを承っておりません。掲載の問い合わせ先へご連絡ください。'
+        : 'Please use the listed contact details for enquiries.');
+      return;
+    }
     // 外部主催のイベントは当サイトで受け付けない。万一呼ばれても開かず、
     // イベント一覧に出している主催者連絡先へ誘導する。
     if (!isOwnOrganizer(event && event.organizer)) {

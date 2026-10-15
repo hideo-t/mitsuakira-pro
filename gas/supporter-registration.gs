@@ -698,6 +698,12 @@ function doGet(e) {
 function submitReservation(data) {
   console.log('submitReservation called with:', JSON.stringify(data));
 
+  // 案内のみのイベントは、予約シートや通知に触れる前に受付を止める。
+  const inquiryEvent = getEventById(data.eventId);
+  if (inquiryEvent && inquiryEvent.status === 'inquiry') {
+    return { success: false, message: '当サイトではお申し込みを承っておりません。掲載の問い合わせ先へご連絡ください。' };
+  }
+
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // 予約シートを取得または作成
@@ -1419,7 +1425,7 @@ function getPublicEvents() {
 
   for (let i = 1; i < data.length; i++) {
     const status = data[i][18];
-    if (status === 'open' || status === 'full' || status === 'published') {
+    if (status === 'open' || status === 'full' || status === 'published' || status === 'inquiry') {
       const eventDate = new Date(data[i][3]);
       if (eventDate >= now) {
         events.push({
@@ -1429,6 +1435,7 @@ function getPublicEvents() {
           date: formatDate(data[i][3]),
           time_open: formatTime(data[i][4]),
           time_start: formatTime(data[i][5]),
+          time_end: formatTime(data[i][6]),
           venue_name: data[i][7],
           venue_address: data[i][8],
           capacity: data[i][10],
